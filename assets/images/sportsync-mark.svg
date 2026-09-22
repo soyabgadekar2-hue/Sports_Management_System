@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+    <defs>
+        <linearGradient id="sportSyncBlue" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#3B82F6"/>
+            <stop offset="100%" stop-color="#1D4ED8"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Main rounded shape -->
+    <rect
+        x="8"
+        y="8"
+        width="112"
+        height="112"
+        rx="30"
+        fill="url(#sportSyncBlue)"
+    />
+
+    <!-- Synchronization / S symbol -->
+    <path
+        d="M88 38
+           C78 28 61 24 47 30
+           C34 35 28 47 31 58
+           C34 69 44 74 58 77
+           L70 80
+           C76 82 78 86 76 90
+           C73 97 61 99 52 96
+           C46 94 41 91 37 87"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="9"
+        stroke-linecap="round"
+    />
+
+    <!-- Bottom synchronization arrow -->
+    <path
+        d="M37 87
+           L38 101
+           L51 96"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    />
+
+    <!-- Top synchronization arrow -->
+    <path
+        d="M88 38
+           L87 25
+           L74 30"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+    />
+
+    <!-- Small sports ball -->
+    <circle
+        cx="91"
+        cy="91"
+        r="13"
+        fill="#FFFFFF"
+    />
+
+    <path
+        d="M84 86
+           L91 82
+           L98 86
+           L96 94
+           L87 96
+           Z"
+        fill="none"
+        stroke="#2563EB"
+        stroke-width="2.5"
+    />
+</svg>
