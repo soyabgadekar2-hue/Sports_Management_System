@@ -12,6 +12,7 @@ $role = $user['role'] ?? '';
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 
+<<<<<<< HEAD
 /*
 |--------------------------------------------------------------------------
 | Role-Based Dashboard
@@ -29,6 +30,8 @@ $dashboardPage = match ($role) {
     default => 'dashboard.php',
 };
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 ?>
 
 <!DOCTYPE html>
@@ -53,9 +56,13 @@ $dashboardPage = match ($role) {
         content="#2563eb"
     >
 
+<<<<<<< HEAD
     <title>
         SportSync | Smart Sports Management System
     </title>
+=======
+    <title>SportSync | Smart Sports Management System</title>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
     <link
         rel="icon"
@@ -68,6 +75,7 @@ $dashboardPage = match ($role) {
         href="../assets/css/style.css"
     >
 
+<<<<<<< HEAD
     <!--
     |--------------------------------------------------------------------------
     | Header / Sidebar Alignment Fix
@@ -228,6 +236,8 @@ $dashboardPage = match ($role) {
         }
     </style>
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 </head>
 
 <body>
@@ -250,11 +260,19 @@ $dashboardPage = match ($role) {
         <div class="sidebar-brand">
 
             <a
+<<<<<<< HEAD
                 href="<?= htmlspecialchars(
                     $dashboardPage,
                     ENT_QUOTES,
                     'UTF-8'
                 ) ?>"
+=======
+                href="<?= $role === 'PLAYER'
+                    ? 'player-dashboard.php'
+                    : ($role === 'COACH'
+                        ? 'coach-dashboard.php'
+                        : 'dashboard.php') ?>"
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 class="brand-link"
                 aria-label="SportSync Dashboard"
             >
@@ -306,12 +324,17 @@ $dashboardPage = match ($role) {
                 <!-- Dashboard -->
 
                 <a
+<<<<<<< HEAD
                     href="<?= htmlspecialchars(
                         $dashboardPage,
                         ENT_QUOTES,
                         'UTF-8'
                     ) ?>"
                     class="<?= $currentPage === $dashboardPage ? 'active' : '' ?>"
+=======
+                    href="dashboard.php"
+                    class="<?= $currentPage === 'dashboard.php' ? 'active' : '' ?>"
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 >
 
                     <span class="nav-icon">
@@ -454,6 +477,7 @@ $dashboardPage = match ($role) {
 
 
             <!-- =================================================
+<<<<<<< HEAD
                  ADMIN PROFILE
                  ================================================= -->
 
@@ -478,13 +502,18 @@ $dashboardPage = match ($role) {
 
 
             <!-- =================================================
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                  PLAYER
                  ================================================= -->
 
             <?php if ($role === 'PLAYER'): ?>
 
+<<<<<<< HEAD
                 <!-- Dashboard -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="player-dashboard.php"
                     class="<?= $currentPage === 'player-dashboard.php' ? 'active' : '' ?>"
@@ -501,8 +530,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Sports -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="player-sports.php"
                     class="<?= $currentPage === 'player-sports.php' ? 'active' : '' ?>"
@@ -519,8 +551,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Teams -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="player-teams.php"
                     class="<?= $currentPage === 'player-teams.php' ? 'active' : '' ?>"
@@ -537,8 +572,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Tournaments -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="player-tournaments.php"
                     class="<?= $currentPage === 'player-tournaments.php' ? 'active' : '' ?>"
@@ -555,8 +593,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Matches -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="player-matches.php"
                     class="<?= $currentPage === 'player-matches.php' ? 'active' : '' ?>"
@@ -573,8 +614,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Statistics -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="player-statistics.php"
                     class="<?= $currentPage === 'player-statistics.php' ? 'active' : '' ?>"
@@ -591,8 +635,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Profile -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="player-profile.php"
                     class="<?= $currentPage === 'player-profile.php' ? 'active' : '' ?>"
@@ -617,8 +664,11 @@ $dashboardPage = match ($role) {
 
             <?php if ($role === 'COACH'): ?>
 
+<<<<<<< HEAD
                 <!-- Dashboard -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-dashboard.php"
                     class="<?= $currentPage === 'coach-dashboard.php' ? 'active' : '' ?>"
@@ -635,8 +685,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Teams -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-teams.php"
                     class="<?= $currentPage === 'coach-teams.php' ? 'active' : '' ?>"
@@ -653,8 +706,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- Team Players -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-players.php"
                     class="<?= $currentPage === 'coach-players.php' ? 'active' : '' ?>"
@@ -671,8 +727,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- My Matches -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-matches.php"
                     class="<?= $currentPage === 'coach-matches.php' ? 'active' : '' ?>"
@@ -689,8 +748,11 @@ $dashboardPage = match ($role) {
                 </a>
 
 
+<<<<<<< HEAD
                 <!-- Team Statistics -->
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-statistics.php"
                     class="<?= $currentPage === 'coach-statistics.php' ? 'active' : '' ?>"
@@ -796,6 +858,7 @@ $dashboardPage = match ($role) {
 
                 <!-- User Information -->
 
+<<<<<<< HEAD
                 <?php if ($role === 'ADMIN'): ?>
 
                     <a
@@ -877,6 +940,43 @@ $dashboardPage = match ($role) {
                     </div>
 
                 <?php endif; ?>
+=======
+                <div class="topbar-user">
+
+                    <div class="topbar-avatar">
+                        👤
+                    </div>
+
+                    <div class="topbar-user-info">
+
+                        <strong>
+                            <?= htmlspecialchars(
+                                $user['full_name'] ?? 'User',
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ) ?>
+                        </strong>
+
+                        <span>
+                            <?= htmlspecialchars(
+                                ucwords(
+                                    strtolower(
+                                        str_replace(
+                                            '_',
+                                            ' ',
+                                            $role
+                                        )
+                                    )
+                                ),
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ) ?>
+                        </span>
+
+                    </div>
+
+                </div>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
             </div>
 

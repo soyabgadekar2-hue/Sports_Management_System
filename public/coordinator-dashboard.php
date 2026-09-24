@@ -1,5 +1,8 @@
 <?php
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
@@ -23,6 +26,7 @@ $totalMatches = 0;
 $completedMatches = 0;
 $upcomingMatches = 0;
 
+<<<<<<< HEAD
 $recentTournaments = [];
 $recentMatches = [];
 
@@ -33,31 +37,46 @@ try {
     |--------------------------------------------------------------------------
     */
 
+=======
+try {
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     $stmt = $pdo->query(
         "SELECT COUNT(*)
          FROM users
          WHERE role_id = 4
          AND account_status = 'APPROVED'"
     );
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     $totalPlayers = (int) $stmt->fetchColumn();
 
     $stmt = $pdo->query(
         "SELECT COUNT(*) FROM teams"
     );
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     $totalTeams = (int) $stmt->fetchColumn();
 
     $stmt = $pdo->query(
         "SELECT COUNT(*) FROM tournaments"
     );
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     $totalTournaments = (int) $stmt->fetchColumn();
 
     $stmt = $pdo->query(
         "SELECT COUNT(*) FROM matches"
     );
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     $totalMatches = (int) $stmt->fetchColumn();
 
     $stmt = $pdo->query(
@@ -65,7 +84,10 @@ try {
          FROM matches
          WHERE match_status = 'COMPLETED'"
     );
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     $completedMatches = (int) $stmt->fetchColumn();
 
     $stmt = $pdo->query(
@@ -73,22 +95,33 @@ try {
          FROM matches
          WHERE match_status IN ('SCHEDULED', 'UPCOMING')"
     );
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     $upcomingMatches = (int) $stmt->fetchColumn();
 
 } catch (Throwable $e) {
     error_log(
+<<<<<<< HEAD
         'Coordinator dashboard statistics error: ' .
+=======
+        'Coordinator dashboard error: ' .
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         $e->getMessage()
     );
 }
 
+<<<<<<< HEAD
 
 /*
 |--------------------------------------------------------------------------
 | Recent Tournaments
 |--------------------------------------------------------------------------
 */
+=======
+$recentTournaments = [];
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
 try {
     $stmt = $pdo->query(
@@ -115,12 +148,16 @@ try {
     );
 }
 
+<<<<<<< HEAD
 
 /*
 |--------------------------------------------------------------------------
 | Recent Matches
 |--------------------------------------------------------------------------
 */
+=======
+$recentMatches = [];
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
 try {
     $stmt = $pdo->query(
@@ -152,6 +189,7 @@ try {
     );
 }
 
+<<<<<<< HEAD
 
 /*
 |--------------------------------------------------------------------------
@@ -159,6 +197,8 @@ try {
 |--------------------------------------------------------------------------
 */
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 function e(?string $value): string
 {
     return htmlspecialchars(
@@ -191,6 +231,7 @@ function coordinatorStatusClass(?string $status): string
     };
 }
 
+<<<<<<< HEAD
 $completionPercentage = $totalMatches > 0
     ? (int) round(
         ($completedMatches / $totalMatches) * 100
@@ -199,6 +240,9 @@ $completionPercentage = $totalMatches > 0
 
 ?>
 
+=======
+?>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 <!DOCTYPE html>
 <html lang="en">
 
@@ -231,6 +275,7 @@ $completionPercentage = $totalMatches > 0
 
     <style>
 
+<<<<<<< HEAD
         /*
         |--------------------------------------------------------------------------
         | Coordinator Dashboard
@@ -250,6 +295,14 @@ $completionPercentage = $totalMatches > 0
         |--------------------------------------------------------------------------
         */
 
+=======
+        .coordinator-dashboard {
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .coordinator-hero {
             position: relative;
             overflow: hidden;
@@ -283,7 +336,11 @@ $completionPercentage = $totalMatches > 0
         .coordinator-hero-content {
             position: relative;
             z-index: 2;
+<<<<<<< HEAD
             max-width: 760px;
+=======
+            max-width: 750px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         }
 
         .coordinator-label {
@@ -316,6 +373,7 @@ $completionPercentage = $totalMatches > 0
             line-height: 1.7;
         }
 
+<<<<<<< HEAD
 
         /*
         |--------------------------------------------------------------------------
@@ -446,6 +504,8 @@ $completionPercentage = $totalMatches > 0
             font-size: 12px;
         }
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .coordinator-stats {
             display: grid;
             grid-template-columns:
@@ -454,7 +514,11 @@ $completionPercentage = $totalMatches > 0
         }
 
         .coordinator-stat {
+<<<<<<< HEAD
             padding: 21px;
+=======
+            padding: 22px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border: 1px solid #e8edf5;
             border-radius: 18px;
             background: #ffffff;
@@ -467,7 +531,11 @@ $completionPercentage = $totalMatches > 0
         }
 
         .coordinator-stat:hover {
+<<<<<<< HEAD
             transform: translateY(-3px);
+=======
+            transform: translateY(-4px);
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             box-shadow:
                 0 15px 32px
                 rgba(20, 35, 65, 0.10);
@@ -477,18 +545,31 @@ $completionPercentage = $totalMatches > 0
             display: flex;
             align-items: center;
             justify-content: center;
+<<<<<<< HEAD
             width: 44px;
             height: 44px;
             margin-bottom: 17px;
             border-radius: 13px;
             background: #eef4ff;
             font-size: 20px;
+=======
+            width: 46px;
+            height: 46px;
+            margin-bottom: 20px;
+            border-radius: 14px;
+            background: #eef4ff;
+            font-size: 21px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         }
 
         .coordinator-stat-number {
             margin: 0;
             color: #111827;
+<<<<<<< HEAD
             font-size: 28px;
+=======
+            font-size: 30px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             font-weight: 800;
             line-height: 1;
         }
@@ -500,6 +581,7 @@ $completionPercentage = $totalMatches > 0
             font-weight: 600;
         }
 
+<<<<<<< HEAD
 
         /*
         |--------------------------------------------------------------------------
@@ -512,6 +594,13 @@ $completionPercentage = $totalMatches > 0
             grid-template-columns:
                 minmax(0, 1.45fr)
                 minmax(300px, 0.75fr);
+=======
+        .coordinator-grid {
+            display: grid;
+            grid-template-columns:
+                minmax(0, 1.4fr)
+                minmax(300px, 0.8fr);
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             gap: 22px;
         }
 
@@ -530,7 +619,11 @@ $completionPercentage = $totalMatches > 0
             align-items: center;
             justify-content: space-between;
             gap: 15px;
+<<<<<<< HEAD
             padding: 21px 24px;
+=======
+            padding: 22px 24px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-bottom: 1px solid #edf1f6;
         }
 
@@ -559,6 +652,7 @@ $completionPercentage = $totalMatches > 0
             text-decoration: underline;
         }
 
+<<<<<<< HEAD
 
         /*
         |--------------------------------------------------------------------------
@@ -566,18 +660,28 @@ $completionPercentage = $totalMatches > 0
         |--------------------------------------------------------------------------
         */
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .coordinator-table-wrap {
             overflow-x: auto;
         }
 
         .coordinator-table {
             width: 100%;
+<<<<<<< HEAD
             min-width: 580px;
+=======
+            min-width: 600px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-collapse: collapse;
         }
 
         .coordinator-table th {
+<<<<<<< HEAD
             padding: 13px 20px;
+=======
+            padding: 14px 20px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             background: #f8fafc;
             color: #64748b;
             font-size: 11px;
@@ -588,7 +692,11 @@ $completionPercentage = $totalMatches > 0
         }
 
         .coordinator-table td {
+<<<<<<< HEAD
             padding: 15px 20px;
+=======
+            padding: 16px 20px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-top: 1px solid #edf1f6;
             color: #334155;
             font-size: 13px;
@@ -634,6 +742,7 @@ $completionPercentage = $totalMatches > 0
             color: #475569;
         }
 
+<<<<<<< HEAD
 
         /*
         |--------------------------------------------------------------------------
@@ -641,6 +750,8 @@ $completionPercentage = $totalMatches > 0
         |--------------------------------------------------------------------------
         */
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .coordinator-actions {
             display: flex;
             flex-direction: column;
@@ -699,6 +810,7 @@ $completionPercentage = $totalMatches > 0
             font-size: 18px;
         }
 
+<<<<<<< HEAD
 
         /*
         |--------------------------------------------------------------------------
@@ -759,11 +871,16 @@ $completionPercentage = $totalMatches > 0
 
         .coordinator-empty {
             padding: 38px 24px;
+=======
+        .coordinator-empty {
+            padding: 40px 24px;
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             color: #94a3b8;
             font-size: 13px;
             text-align: center;
         }
 
+<<<<<<< HEAD
 
         /*
         |--------------------------------------------------------------------------
@@ -771,6 +888,8 @@ $completionPercentage = $totalMatches > 0
         |--------------------------------------------------------------------------
         */
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         @media (max-width: 1100px) {
 
             .coordinator-stats {
@@ -786,15 +905,19 @@ $completionPercentage = $totalMatches > 0
 
         @media (max-width: 700px) {
 
+<<<<<<< HEAD
             .coordinator-dashboard {
                 gap: 20px;
             }
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             .coordinator-hero {
                 padding: 24px;
                 border-radius: 20px;
             }
 
+<<<<<<< HEAD
             .coordinator-next-step {
                 align-items: stretch;
                 flex-direction: column;
@@ -805,6 +928,8 @@ $completionPercentage = $totalMatches > 0
                 width: 100%;
             }
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             .coordinator-stats {
                 grid-template-columns: 1fr;
             }
@@ -833,10 +958,14 @@ $completionPercentage = $totalMatches > 0
 
     <main class="coordinator-dashboard">
 
+<<<<<<< HEAD
 
         <!-- =====================================================
              HERO
              ===================================================== -->
+=======
+        <!-- HERO -->
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
         <section class="coordinator-hero">
 
@@ -852,9 +981,15 @@ $completionPercentage = $totalMatches > 0
                 </h1>
 
                 <p>
+<<<<<<< HEAD
                     You coordinate the sports operations of SportSync.
                     Your main work is to manage competitions, teams,
                     matches, results and standings.
+=======
+                    Coordinate tournaments, teams, matches,
+                    results and sports activities across
+                    SportSync from one central workspace.
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 </p>
 
             </div>
@@ -862,6 +997,7 @@ $completionPercentage = $totalMatches > 0
         </section>
 
 
+<<<<<<< HEAD
         <!-- =====================================================
              YOUR NEXT STEP
              ===================================================== -->
@@ -1041,10 +1177,83 @@ $completionPercentage = $totalMatches > 0
                 </article>
 
             </div>
+=======
+        <!-- STATISTICS -->
+
+        <section class="coordinator-stats">
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    🧑‍🎓
+                </div>
+
+                <p class="coordinator-stat-number">
+                    <?= $totalPlayers; ?>
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Approved Players
+                </p>
+
+            </article>
+
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    👥
+                </div>
+
+                <p class="coordinator-stat-number">
+                    <?= $totalTeams; ?>
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Teams
+                </p>
+
+            </article>
+
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    🏆
+                </div>
+
+                <p class="coordinator-stat-number">
+                    <?= $totalTournaments; ?>
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Tournaments
+                </p>
+
+            </article>
+
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    ⚽
+                </div>
+
+                <p class="coordinator-stat-number">
+                    <?= $totalMatches; ?>
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Total Matches
+                </p>
+
+            </article>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
         </section>
 
 
+<<<<<<< HEAD
         <!-- =====================================================
              CURRENT WORK
              ===================================================== -->
@@ -1055,6 +1264,13 @@ $completionPercentage = $totalMatches > 0
             <!-- =================================================
                  RECENT TOURNAMENTS
                  ================================================= -->
+=======
+        <!-- MAIN GRID -->
+
+        <section class="coordinator-grid">
+
+            <!-- RECENT TOURNAMENTS -->
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
             <div class="coordinator-panel">
 
@@ -1067,7 +1283,11 @@ $completionPercentage = $totalMatches > 0
                         </h2>
 
                         <p class="coordinator-panel-subtitle">
+<<<<<<< HEAD
                             Latest competitions created in SportSync
+=======
+                            Latest competitions in SportSync
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                         </p>
 
                     </div>
@@ -1076,7 +1296,11 @@ $completionPercentage = $totalMatches > 0
                         href="admin-tournaments.php"
                         class="coordinator-panel-link"
                     >
+<<<<<<< HEAD
                         View All →
+=======
+                        Manage →
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     </a>
 
                 </div>
@@ -1107,6 +1331,7 @@ $completionPercentage = $totalMatches > 0
                                     <td>
 
                                         <div class="coordinator-name">
+<<<<<<< HEAD
 
                                             <?= e(
                                                 $tournament['tournament_name']
@@ -1126,21 +1351,45 @@ $completionPercentage = $totalMatches > 0
                                                 $tournament['end_date']
                                             ); ?>
 
+=======
+                                            <?= e(
+                                                $tournament['tournament_name']
+                                            ); ?>
+                                        </div>
+
+                                        <div class="coordinator-meta">
+                                            <?= e(
+                                                $tournament['start_date']
+                                            ); ?>
+                                            -
+                                            <?= e(
+                                                $tournament['end_date']
+                                            ); ?>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                         </div>
 
                                     </td>
 
+<<<<<<< HEAD
 
                                     <td>
 
+=======
+                                    <td>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                         <?= e(
                                             $tournament['sport_name']
                                             ?? 'Sport'
                                         ); ?>
+<<<<<<< HEAD
 
                                     </td>
 
 
+=======
+                                    </td>
+
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                     <td>
 
                                         <span
@@ -1149,12 +1398,18 @@ $completionPercentage = $totalMatches > 0
                                                 ?? ''
                                             ); ?>"
                                         >
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                             <?= e(
                                                 $tournament['tournament_status']
                                                 ?? 'N/A'
                                             ); ?>
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                         </span>
 
                                     </td>
@@ -1172,9 +1427,13 @@ $completionPercentage = $totalMatches > 0
                 <?php else: ?>
 
                     <div class="coordinator-empty">
+<<<<<<< HEAD
 
                         No tournaments available yet.
 
+=======
+                        No tournaments available.
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     </div>
 
                 <?php endif; ?>
@@ -1182,9 +1441,13 @@ $completionPercentage = $totalMatches > 0
             </div>
 
 
+<<<<<<< HEAD
             <!-- =================================================
                  COORDINATOR TOOLS
                  ================================================= -->
+=======
+            <!-- ACTIONS -->
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
             <div class="coordinator-panel">
 
@@ -1197,7 +1460,11 @@ $completionPercentage = $totalMatches > 0
                         </h2>
 
                         <p class="coordinator-panel-subtitle">
+<<<<<<< HEAD
                             Go directly to your main tasks
+=======
+                            Manage your sports operations
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                         </p>
 
                     </div>
@@ -1207,7 +1474,10 @@ $completionPercentage = $totalMatches > 0
 
                 <div class="coordinator-actions">
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     <a
                         href="admin-tournaments.php"
                         class="coordinator-action"
@@ -1308,7 +1578,11 @@ $completionPercentage = $totalMatches > 0
                             </span>
 
                             <span class="coordinator-action-description">
+<<<<<<< HEAD
                                 Check competition standings
+=======
+                                View competition standings
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                             </span>
 
                         </span>
@@ -1319,7 +1593,10 @@ $completionPercentage = $totalMatches > 0
 
                     </a>
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 </div>
 
             </div>
@@ -1327,9 +1604,13 @@ $completionPercentage = $totalMatches > 0
         </section>
 
 
+<<<<<<< HEAD
         <!-- =====================================================
              MATCH ACTIVITY
              ===================================================== -->
+=======
+        <!-- MATCH OVERVIEW -->
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
         <section class="coordinator-panel">
 
@@ -1338,11 +1619,19 @@ $completionPercentage = $totalMatches > 0
                 <div>
 
                     <h2 class="coordinator-panel-title">
+<<<<<<< HEAD
                         Match Activity
                     </h2>
 
                     <p class="coordinator-panel-subtitle">
                         Recent scheduled and completed matches
+=======
+                        Recent Matches
+                    </h2>
+
+                    <p class="coordinator-panel-subtitle">
+                        Latest scheduled and completed matches
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     </p>
 
                 </div>
@@ -1384,9 +1673,14 @@ $completionPercentage = $totalMatches > 0
 
                                     <div class="coordinator-name">
 
+<<<<<<< HEAD
                                         Match #
 
                                         <?= e(
+=======
+                                        Match
+                                        #<?= e(
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                             (string) (
                                                 $match['match_number']
                                                 ?? $match['match_id']
@@ -1413,27 +1707,42 @@ $completionPercentage = $totalMatches > 0
 
                                 </td>
 
+<<<<<<< HEAD
 
                                 <td>
 
+=======
+                                <td>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                     <?= e(
                                         $match['tournament_name']
                                         ?? 'Tournament'
                                     ); ?>
+<<<<<<< HEAD
 
                                 </td>
 
 
                                 <td>
 
+=======
+                                </td>
+
+                                <td>
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                     <?= e(
                                         $match['match_date']
                                         ?? ''
                                     ); ?>
+<<<<<<< HEAD
 
                                 </td>
 
 
+=======
+                                </td>
+
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                 <td>
 
                                     <span
@@ -1442,12 +1751,18 @@ $completionPercentage = $totalMatches > 0
                                             ?? ''
                                         ); ?>"
                                     >
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                         <?= e(
                                             $match['match_status']
                                             ?? 'N/A'
                                         ); ?>
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                                     </span>
 
                                 </td>
@@ -1465,9 +1780,13 @@ $completionPercentage = $totalMatches > 0
             <?php else: ?>
 
                 <div class="coordinator-empty">
+<<<<<<< HEAD
 
                     No matches are available yet.
 
+=======
+                    No matches are available yet.
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 </div>
 
             <?php endif; ?>
@@ -1475,6 +1794,7 @@ $completionPercentage = $totalMatches > 0
         </section>
 
 
+<<<<<<< HEAD
         <!-- =====================================================
              MATCH PROGRESS
              ===================================================== -->
@@ -1544,6 +1864,85 @@ $completionPercentage = $totalMatches > 0
         </section>
 
 
+=======
+        <!-- SUMMARY -->
+
+        <section class="coordinator-stats">
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    📅
+                </div>
+
+                <p class="coordinator-stat-number">
+                    <?= $upcomingMatches; ?>
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Upcoming Matches
+                </p>
+
+            </article>
+
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    ✅
+                </div>
+
+                <p class="coordinator-stat-number">
+                    <?= $completedMatches; ?>
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Completed Matches
+                </p>
+
+            </article>
+
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    📊
+                </div>
+
+                <p class="coordinator-stat-number">
+                    <?= $totalMatches > 0
+                        ? round(
+                            ($completedMatches / $totalMatches) * 100
+                        )
+                        : 0; ?>%
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Matches Completed
+                </p>
+
+            </article>
+
+
+            <article class="coordinator-stat">
+
+                <div class="coordinator-stat-icon">
+                    🚀
+                </div>
+
+                <p class="coordinator-stat-number">
+                    SportSync
+                </p>
+
+                <p class="coordinator-stat-title">
+                    Sports Management
+                </p>
+
+            </article>
+
+        </section>
+
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     </main>
 
 </div>
@@ -1551,5 +1950,8 @@ $completionPercentage = $totalMatches > 0
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
 </body>
+<<<<<<< HEAD
 
+=======
+>>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 </html>
