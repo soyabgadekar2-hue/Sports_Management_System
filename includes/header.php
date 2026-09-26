@@ -12,13 +12,11 @@ $role = $user['role'] ?? '';
 
 $currentPage = basename($_SERVER['PHP_SELF']);
 
-<<<<<<< HEAD
 /*
 |--------------------------------------------------------------------------
 | Role-Based Dashboard
 |--------------------------------------------------------------------------
 | Each role has one official dashboard.
-| This prevents the old dashboard.php page from being opened accidentally.
 |--------------------------------------------------------------------------
 */
 
@@ -30,10 +28,80 @@ $dashboardPage = match ($role) {
     default => 'dashboard.php',
 };
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
-?>
+/*
+|--------------------------------------------------------------------------
+| Helpers
+|--------------------------------------------------------------------------
+*/
 
+function headerEscape(string $value): string
+{
+    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+}
+
+function isCurrentPage(string $page): bool
+{
+    global $currentPage;
+
+    return $currentPage === $page;
+}
+
+function navClass(string $page): string
+{
+    return isCurrentPage($page) ? 'active' : '';
+}
+
+function formatRoleName(string $role): string
+{
+    return match ($role) {
+        'ADMIN' => 'Administrator',
+        'SPORTS_COORDINATOR' => 'Sports Coordinator',
+        'COACH' => 'Coach',
+        'PLAYER' => 'Player',
+        default => ucwords(strtolower(str_replace('_', ' ', $role))),
+    };
+}
+
+/*
+|--------------------------------------------------------------------------
+| Load the latest name from the database
+|--------------------------------------------------------------------------
+*/
+
+require_once __DIR__ . '/../config/database.php';
+
+$fullName = 'User';
+
+try {
+    $nameQuery = db()->prepare(
+        'SELECT full_name
+         FROM users
+         WHERE user_id = :user_id
+         LIMIT 1'
+    );
+
+    $nameQuery->execute([
+        'user_id' => (int) ($user['id'] ?? 0),
+    ]);
+
+    $databaseName = trim((string) $nameQuery->fetchColumn());
+
+    if ($databaseName !== '') {
+        $fullName = $databaseName;
+    }
+} catch (Throwable $error) {
+    // Keep the header usable if the name cannot be loaded.
+}
+
+$roleLabel = formatRoleName($role);
+
+$initial = strtoupper(substr($fullName, 0, 1));
+
+if ($initial === '') {
+    $initial = 'U';
+}
+
+?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -56,13 +124,7 @@ $dashboardPage = match ($role) {
         content="#2563eb"
     >
 
-<<<<<<< HEAD
-    <title>
-        SportSync | Smart Sports Management System
-    </title>
-=======
-    <title>SportSync | Smart Sports Management System</title>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
+    <title>SportSync - Smart Sports Management System</title>
 
     <link
         rel="icon"
@@ -72,919 +134,954 @@ $dashboardPage = match ($role) {
 
     <link
         rel="stylesheet"
-        href="../assets/css/style.css"
+        href="../assets/css/style.css?v=3"
     >
 
-<<<<<<< HEAD
     <!--
     |--------------------------------------------------------------------------
-    | Header / Sidebar Alignment Fix
+    | SportSync Application Shell Alignment
     |--------------------------------------------------------------------------
-    | Keeps the fixed sidebar and main content aligned consistently.
+    | These rules intentionally keep the existing design while making the
+    | sidebar header and main page header use exactly the same height.
     |--------------------------------------------------------------------------
     -->
 
     <style>
-        /* =========================================================
-           GLOBAL APP LAYOUT ALIGNMENT
-           ========================================================= */
 
-        .app-layout {
-            min-height: 100vh;
-            width: 100%;
-            position: relative;
+        :root {
+            --sportsync-sidebar-width: 260px;
+            --sportsync-header-height: 72px;
         }
 
-        /* =========================================================
-           SIDEBAR
-           ========================================================= */
+        /* ================================================================
+           GLOBAL APP LAYOUT
+        ================================================================ */
 
-        .app-layout .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 260px;
-            height: 100vh;
-            min-height: 100vh;
-            z-index: 1000;
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100%;
+        }
 
-            display: flex;
-            flex-direction: column;
-
-            overflow-y: auto;
+        body {
             overflow-x: hidden;
         }
 
-        /* Sidebar brand stays at the very top */
+        .app-layout {
+            min-height: 100vh !important;
+            width: 100% !important;
+            position: relative !important;
+        }
+
+        /* ================================================================
+           SIDEBAR
+        ================================================================ */
+
+        .app-layout .sidebar {
+            width: var(--sportsync-sidebar-width) !important;
+            min-width: var(--sportsync-sidebar-width) !important;
+            max-width: var(--sportsync-sidebar-width) !important;
+
+            height: 100vh !important;
+            min-height: 100vh !important;
+
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+
+            z-index: 1000 !important;
+
+            box-sizing: border-box !important;
+
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+        }
+
+        /* ================================================================
+           SIDEBAR BRAND / HEADER
+        ================================================================ */
 
         .app-layout .sidebar-brand {
-            width: 100%;
-            flex-shrink: 0;
+            width: 100% !important;
+
+            height: var(--sportsync-header-height) !important;
+            min-height: var(--sportsync-header-height) !important;
+            max-height: var(--sportsync-header-height) !important;
+
+            box-sizing: border-box !important;
+
+            margin: 0 !important;
+            padding: 0 16px !important;
+
+            display: flex !important;
+            align-items: center !important;
+
+            overflow: hidden !important;
         }
 
-        /* Navigation takes remaining sidebar space */
+        .app-layout .sidebar-brand-link {
+            width: 100% !important;
+            height: 100% !important;
+
+            display: flex !important;
+            flex-direction: row !important;
+
+            align-items: center !important;
+            justify-content: flex-start !important;
+
+            gap: 10px !important;
+
+            margin: 0 !important;
+            padding: 0 !important;
+
+            text-decoration: none !important;
+
+            box-sizing: border-box !important;
+
+            overflow: hidden !important;
+        }
+
+        .app-layout .sidebar-logo {
+            width: 42px !important;
+            height: 42px !important;
+
+            min-width: 42px !important;
+            min-height: 42px !important;
+
+            max-width: 42px !important;
+            max-height: 42px !important;
+
+            flex: 0 0 42px !important;
+
+            display: block !important;
+
+            object-fit: contain !important;
+
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .app-layout .sidebar-brand-text {
+            min-width: 0 !important;
+
+            display: flex !important;
+            flex-direction: column !important;
+
+            justify-content: center !important;
+            align-items: flex-start !important;
+
+            gap: 2px !important;
+
+            overflow: hidden !important;
+        }
+
+        .app-layout .sidebar-brand-name {
+            display: block !important;
+
+            margin: 0 !important;
+            padding: 0 !important;
+
+            color: #ffffff !important;
+
+            font-size: 19px !important;
+            line-height: 1.1 !important;
+            font-weight: 800 !important;
+
+            letter-spacing: -0.3px !important;
+
+            white-space: nowrap !important;
+        }
+
+        .app-layout .sidebar-brand-tagline {
+            display: block !important;
+
+            margin: 0 !important;
+            padding: 0 !important;
+
+            color: rgba(255, 255, 255, 0.68) !important;
+
+            font-size: 9px !important;
+            line-height: 1.2 !important;
+            font-weight: 500 !important;
+
+            white-space: nowrap !important;
+        }
+
+        /* ================================================================
+           SIDEBAR NAVIGATION
+        ================================================================ */
 
         .app-layout .sidebar-nav {
-            flex: 1;
-            width: 100%;
+            width: 100% !important;
+            box-sizing: border-box !important;
         }
 
-        /* Footer remains at the bottom */
-
-        .app-layout .sidebar-footer {
-            width: 100%;
-            flex-shrink: 0;
+        .app-layout .sidebar-nav a {
+            box-sizing: border-box !important;
         }
 
-        /* =========================================================
+        /* ================================================================
            MAIN CONTENT
-           ========================================================= */
+        ================================================================ */
 
         .app-layout .main-content {
-            margin-left: 260px;
-            width: calc(100% - 260px);
-            min-height: 100vh;
+            width: calc(100% - var(--sportsync-sidebar-width)) !important;
 
-            display: flex;
-            flex-direction: column;
+            min-width: 0 !important;
+
+            margin-left: var(--sportsync-sidebar-width) !important;
+
+            min-height: 100vh !important;
+
+            box-sizing: border-box !important;
         }
 
-        /* =========================================================
-           TOPBAR
-           ========================================================= */
+        /* ================================================================
+           MAIN TOP HEADER
+        ================================================================ */
 
         .app-layout .topbar {
-            width: 100%;
-            min-height: 72px;
-            height: 72px;
+            width: 100% !important;
+            height: var(--sportsync-header-height) !important;
+            min-height: var(--sportsync-header-height) !important;
+            max-height: var(--sportsync-header-height) !important;
+            box-sizing: border-box !important;
+            margin: 0 !important;
+            padding: 0 24px !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            position: sticky !important;
+            top: 0 !important;
+            background: #ffffff !important;
+            z-index: 1100 !important;
+        }
 
-            flex-shrink: 0;
+        .app-layout .topbar-left {
+            min-width: 0 !important;
+
+            height: 100% !important;
+
+            display: flex !important;
+            align-items: center !important;
+
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
         .app-layout .topbar-right {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            height: 100%;
+            height: 100% !important;
+
+            display: flex !important;
+            align-items: center !important;
+
+            margin-left: auto !important;
         }
+
+        /* ================================================================
+           DESKTOP MENU BUTTON
+           ================================================================
+
+           Sidebar is permanently visible on desktop, therefore the menu
+           button is unnecessary there.
+        */
+
+        .app-layout .menu-toggle {
+            display: none !important;
+        }
+
+        /* ================================================================
+           TOPBAR USER
+        ================================================================ */
 
         .app-layout .topbar-user {
-            display: flex;
-            align-items: center;
+            height: 100% !important;
+
+            display: flex !important;
+            align-items: center !important;
+
+            gap: 10px !important;
+
+            margin: 0 !important;
+            padding: 0 !important;
         }
 
-        /* =========================================================
+        .app-layout .topbar-avatar {
+            width: 38px !important;
+            height: 38px !important;
+
+            min-width: 38px !important;
+            min-height: 38px !important;
+
+            border-radius: 50% !important;
+
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+
+            box-sizing: border-box !important;
+
+            font-weight: 800 !important;
+        }
+
+        .app-layout .topbar-user-info {
+            display: flex !important;
+            flex-direction: column !important;
+
+            justify-content: center !important;
+
+            line-height: 1.15 !important;
+        }
+
+        .app-layout .topbar-user-name {
+            margin: 0 !important;
+            padding: 0 !important;
+
+            font-size: 13px !important;
+            font-weight: 700 !important;
+
+            white-space: nowrap !important;
+        }
+
+        .app-layout .topbar-user-role {
+            margin: 3px 0 0 !important;
+            padding: 0 !important;
+
+            font-size: 10px !important;
+
+            white-space: nowrap !important;
+        }
+
+        /* ================================================================
            PAGE CONTAINER
-           ========================================================= */
+        ================================================================ */
 
         .app-layout .page-container {
-            width: 100%;
-            box-sizing: border-box;
+            box-sizing: border-box !important;
         }
 
-        /* =========================================================
+        /* ================================================================
            MOBILE
-           ========================================================= */
+        ================================================================ */
 
-        @media (max-width: 900px) {
+        @media (max-width: 1024px) {
 
-            .app-layout .sidebar {
-                transform: translateX(-100%);
-                transition: transform 0.25s ease;
+            :root {
+                --sportsync-header-height: 64px;
             }
 
-            .app-layout .sidebar.open {
-                transform: translateX(0);
+            .app-layout .sidebar {
+                width: 260px !important;
+                min-width: 260px !important;
+                max-width: 260px !important;
+
+                transform: translateX(-100%) !important;
+
+                transition: transform 0.25s ease !important;
+            }
+
+            .app-layout .sidebar.open,
+            .app-layout .sidebar.active,
+            .app-layout .sidebar.sidebar-open {
+                transform: translateX(0) !important;
             }
 
             .app-layout .main-content {
-                margin-left: 0;
-                width: 100%;
+                width: 100% !important;
+                margin-left: 0 !important;
+            }
+
+            .app-layout .menu-toggle {
+                width: 40px !important;
+                height: 40px !important;
+
+                display: inline-flex !important;
+
+                align-items: center !important;
+                justify-content: center !important;
+
+                margin: 0 12px 0 0 !important;
+                padding: 0 !important;
+
+                border: 0 !important;
+                background: transparent !important;
+
+                cursor: pointer !important;
+
+                font-size: 22px !important;
             }
 
             .app-layout .topbar {
-                width: 100%;
-            }
-
-            .app-layout .sidebar-overlay {
-                display: none;
-            }
-
-            .app-layout .sidebar-overlay.active {
-                display: block;
-            }
-        }
-
-        /* =========================================================
-           SMALL MOBILE
-           ========================================================= */
-
-        @media (max-width: 600px) {
-
-            .app-layout .topbar {
-                min-height: 64px;
-                height: 64px;
+                padding: 0 18px !important;
             }
 
             .app-layout .topbar-user-info {
-                display: none;
+                display: none !important;
             }
         }
+
+        /* ================================================================
+           SMALL MOBILE
+        ================================================================ */
+
+        @media (max-width: 600px) {
+
+            .app-layout .sidebar {
+                width: 280px !important;
+                max-width: 86vw !important;
+            }
+
+            .app-layout .sidebar-brand {
+                padding: 0 14px !important;
+            }
+
+            .app-layout .sidebar-logo {
+                width: 40px !important;
+                height: 40px !important;
+
+                min-width: 40px !important;
+                min-height: 40px !important;
+
+                max-width: 40px !important;
+                max-height: 40px !important;
+            }
+
+            .app-layout .sidebar-brand-name {
+                font-size: 18px !important;
+            }
+
+            .app-layout .sidebar-brand-tagline {
+                font-size: 8px !important;
+            }
+
+            .app-layout .topbar {
+                padding: 0 14px !important;
+            }
+
+            .app-layout .topbar-avatar {
+                width: 36px !important;
+                height: 36px !important;
+
+                min-width: 36px !important;
+                min-height: 36px !important;
+            }
+        }
+
+        /* ================================================================
+           ACCESSIBILITY
+        ================================================================ */
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .app-layout .sidebar {
+                transition: none !important;
+            }
+
+        }
+
     </style>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 </head>
 
 <body>
 
 <div class="app-layout">
 
-    <!-- =========================================================
+    <!-- ================================================================
          SIDEBAR
-         ========================================================= -->
+         ================================================================ -->
 
     <aside
         class="sidebar"
         id="sidebar"
     >
 
-        <!-- =====================================================
-             BRAND
-             ===================================================== -->
+        <!-- ============================================================
+             SIDEBAR BRAND
+             ============================================================ -->
 
         <div class="sidebar-brand">
 
             <a
-<<<<<<< HEAD
-                href="<?= htmlspecialchars(
-                    $dashboardPage,
-                    ENT_QUOTES,
-                    'UTF-8'
-                ) ?>"
-=======
-                href="<?= $role === 'PLAYER'
-                    ? 'player-dashboard.php'
-                    : ($role === 'COACH'
-                        ? 'coach-dashboard.php'
-                        : 'dashboard.php') ?>"
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
-                class="brand-link"
+                href="<?= headerEscape($dashboardPage) ?>"
+                class="sidebar-brand-link"
                 aria-label="SportSync Dashboard"
             >
 
-                <div class="brand-icon">
+                <img
+                    src="../assets/images/sportsync-mark.svg"
+                    alt="SportSync Logo"
+                    class="sidebar-logo"
+                >
 
-                    <img
-                        src="../assets/images/sportsync-mark.svg"
-                        alt="SportSync"
-                    >
+                <span class="sidebar-brand-text">
 
-                </div>
-
-                <div class="brand-text">
-
-                    <strong>
+                    <span class="sidebar-brand-name">
                         SportSync
-                    </strong>
-
-                    <span>
-                        Smart Sports Management
                     </span>
 
-                </div>
+                    <span class="sidebar-brand-tagline">
+                        Smart Sports Management System
+                    </span>
+
+                </span>
 
             </a>
 
         </div>
 
 
-        <!-- =====================================================
-             NAVIGATION
-             ===================================================== -->
+        <!-- ============================================================
+             SIDEBAR NAVIGATION
+             ============================================================ -->
 
         <nav
             class="sidebar-nav"
             aria-label="Main navigation"
         >
 
-            <!-- =================================================
-                 ADMIN / SPORTS COORDINATOR
-                 ================================================= -->
+            <?php if ($role === 'ADMIN'): ?>
 
-            <?php if (
-                $role === 'ADMIN' ||
-                $role === 'SPORTS_COORDINATOR'
-            ): ?>
+                <!-- ====================================================
+                     ADMIN
+                     ==================================================== -->
 
-                <!-- Dashboard -->
+                <div class="sidebar-section-title">
+                    Main
+                </div>
 
                 <a
-<<<<<<< HEAD
-                    href="<?= htmlspecialchars(
-                        $dashboardPage,
-                        ENT_QUOTES,
-                        'UTF-8'
-                    ) ?>"
-                    class="<?= $currentPage === $dashboardPage ? 'active' : '' ?>"
-=======
-                    href="dashboard.php"
-                    class="<?= $currentPage === 'dashboard.php' ? 'active' : '' ?>"
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
+                    href="admin-dashboard.php"
+                    class="<?= navClass('admin-dashboard.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        🏠
-                    </span>
-
-                    <span class="nav-label">
-                        Dashboard
-                    </span>
-
+                    <span aria-hidden="true">🏠</span>
+                    <span>Dashboard</span>
                 </a>
 
 
-                <!-- Tournaments -->
-
-                <a
-                    href="admin-tournaments.php"
-                    class="<?= $currentPage === 'admin-tournaments.php' ? 'active' : '' ?>"
-                >
-
-                    <span class="nav-icon">
-                        🏆
-                    </span>
-
-                    <span class="nav-label">
-                        Tournaments
-                    </span>
-
-                </a>
-
-
-                <!-- Teams -->
-
-                <a
-                    href="admin-teams.php"
-                    class="<?= $currentPage === 'admin-teams.php' ? 'active' : '' ?>"
-                >
-
-                    <span class="nav-icon">
-                        👥
-                    </span>
-
-                    <span class="nav-label">
-                        Teams
-                    </span>
-
-                </a>
-
-
-                <!-- Approved Players -->
-
-                <a
-                    href="admin-students.php"
-                    class="<?= $currentPage === 'admin-students.php' ? 'active' : '' ?>"
-                >
-
-                    <span class="nav-icon">
-                        🏃
-                    </span>
-
-                    <span class="nav-label">
-                        Players
-                    </span>
-
-                </a>
-
-
-                <!-- Pending Players -->
+                <div class="sidebar-section-title">
+                    Student Management
+                </div>
 
                 <a
                     href="admin-pending-students.php"
-                    class="<?= $currentPage === 'admin-pending-students.php' ? 'active' : '' ?>"
+                    class="<?= navClass('admin-pending-students.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        ⏳
-                    </span>
-
-                    <span class="nav-label">
-                        Pending Players
-                    </span>
-
+                    <span aria-hidden="true">⏳</span>
+                    <span>Pending Students</span>
                 </a>
 
-
-                <!-- Rejected Players -->
+                <a
+                    href="admin-students.php"
+                    class="<?= navClass('admin-students.php') ?>"
+                >
+                    <span aria-hidden="true">👥</span>
+                    <span>Approved Students</span>
+                </a>
 
                 <a
                     href="admin-rejected-students.php"
-                    class="<?= $currentPage === 'admin-rejected-students.php' ? 'active' : '' ?>"
+                    class="<?= navClass('admin-rejected-students.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        🚫
-                    </span>
-
-                    <span class="nav-label">
-                        Rejected Players
-                    </span>
-
+                    <span aria-hidden="true">🚫</span>
+                    <span>Rejected / Suspended</span>
                 </a>
 
 
-                <!-- Create Tournament -->
+                <div class="sidebar-section-title">
+                    Sports Management
+                </div>
 
                 <a
-                    href="create-tournament.php"
-                    class="<?= $currentPage === 'create-tournament.php' ? 'active' : '' ?>"
+                    href="admin-teams.php"
+                    class="<?= navClass('admin-teams.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        ➕
-                    </span>
-
-                    <span class="nav-label">
-                        Create Tournament
-                    </span>
-
+                    <span aria-hidden="true">🛡️</span>
+                    <span>Teams</span>
                 </a>
-
-
-                <!-- Create Team -->
 
                 <a
-                    href="create-team.php"
-                    class="<?= $currentPage === 'create-team.php' ? 'active' : '' ?>"
+                    href="admin-tournaments.php"
+                    class="<?= navClass('admin-tournaments.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        ➕
-                    </span>
-
-                    <span class="nav-label">
-                        Create Team
-                    </span>
-
+                    <span aria-hidden="true">🏆</span>
+                    <span>Tournaments</span>
                 </a>
 
-            <?php endif; ?>
 
-
-            <!-- =================================================
-<<<<<<< HEAD
-                 ADMIN PROFILE
-                 ================================================= -->
-
-            <?php if ($role === 'ADMIN'): ?>
+                <div class="sidebar-section-title">
+                    Account
+                </div>
 
                 <a
                     href="admin-profile.php"
-                    class="<?= $currentPage === 'admin-profile.php' ? 'active' : '' ?>"
+                    class="<?= navClass('admin-profile.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        👤
-                    </span>
-
-                    <span class="nav-label">
-                        Profile
-                    </span>
-
+                    <span aria-hidden="true">👤</span>
+                    <span>My Profile</span>
                 </a>
 
-            <?php endif; ?>
 
+            <?php elseif ($role === 'SPORTS_COORDINATOR'): ?>
 
-            <!-- =================================================
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
-                 PLAYER
-                 ================================================= -->
+                <!-- ====================================================
+                     SPORTS COORDINATOR
+                     ==================================================== -->
 
-            <?php if ($role === 'PLAYER'): ?>
+                <div class="sidebar-section-title">
+                    Main
+                </div>
 
-<<<<<<< HEAD
-                <!-- Dashboard -->
-
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
-                    href="player-dashboard.php"
-                    class="<?= $currentPage === 'player-dashboard.php' ? 'active' : '' ?>"
+                    href="coordinator-dashboard.php"
+                    class="<?= navClass('coordinator-dashboard.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        🏠
-                    </span>
-
-                    <span class="nav-label">
-                        Dashboard
-                    </span>
-
+                    <span aria-hidden="true">🏠</span>
+                    <span>Dashboard</span>
                 </a>
 
 
-<<<<<<< HEAD
-                <!-- My Sports -->
+                <div class="sidebar-section-title">
+                    Competitions
+                </div>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
-                    href="player-sports.php"
-                    class="<?= $currentPage === 'player-sports.php' ? 'active' : '' ?>"
+                    href="admin-tournaments.php"
+                    class="<?= navClass('admin-tournaments.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        🏅
-                    </span>
-
-                    <span class="nav-label">
-                        My Sports
-                    </span>
-
+                    <span aria-hidden="true">🏆</span>
+                    <span>Tournaments</span>
                 </a>
 
-
-<<<<<<< HEAD
-                <!-- My Teams -->
-
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
-                    href="player-teams.php"
-                    class="<?= $currentPage === 'player-teams.php' ? 'active' : '' ?>"
+                    href="tournament-standings.php"
+                    class="<?= navClass('tournament-standings.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        👥
-                    </span>
-
-                    <span class="nav-label">
-                        My Teams
-                    </span>
-
+                    <span aria-hidden="true">📊</span>
+                    <span>Standings</span>
                 </a>
 
 
-<<<<<<< HEAD
-                <!-- My Tournaments -->
+                <div class="sidebar-section-title">
+                    Matches
+                </div>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
-                    href="player-tournaments.php"
-                    class="<?= $currentPage === 'player-tournaments.php' ? 'active' : '' ?>"
+                    href="schedule-match.php"
+                    class="<?= navClass('schedule-match.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        🏆
-                    </span>
-
-                    <span class="nav-label">
-                        My Tournaments
-                    </span>
-
+                    <span aria-hidden="true">📅</span>
+                    <span>Schedule Match</span>
                 </a>
 
-
-<<<<<<< HEAD
-                <!-- My Matches -->
-
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
-                    href="player-matches.php"
-                    class="<?= $currentPage === 'player-matches.php' ? 'active' : '' ?>"
+                    href="match-results.php"
+                    class="<?= navClass('match-results.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        ⚽
-                    </span>
-
-                    <span class="nav-label">
-                        My Matches
-                    </span>
-
+                    <span aria-hidden="true">🏁</span>
+                    <span>Match Results</span>
                 </a>
 
-
-<<<<<<< HEAD
-                <!-- My Statistics -->
-
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
-                    href="player-statistics.php"
-                    class="<?= $currentPage === 'player-statistics.php' ? 'active' : '' ?>"
+                    href="edit-match-result.php"
+                    class="<?= navClass('edit-match-result.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        📊
-                    </span>
-
-                    <span class="nav-label">
-                        My Statistics
-                    </span>
-
+                    <span aria-hidden="true">✏️</span>
+                    <span>Result Corrections</span>
                 </a>
 
 
-<<<<<<< HEAD
-                <!-- My Profile -->
+                <div class="sidebar-section-title">
+                    Sports
+                </div>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
-                    href="player-profile.php"
-                    class="<?= $currentPage === 'player-profile.php' ? 'active' : '' ?>"
+                    href="admin-teams.php"
+                    class="<?= navClass('admin-teams.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        👤
-                    </span>
-
-                    <span class="nav-label">
-                        My Profile
-                    </span>
-
+                    <span aria-hidden="true">🛡️</span>
+                    <span>Teams</span>
                 </a>
 
-            <?php endif; ?>
+                <a
+                    href="admin-students.php"
+                    class="<?= navClass('admin-students.php') ?>"
+                >
+                    <span aria-hidden="true">👥</span>
+                    <span>Players</span>
+                </a>
 
 
-            <!-- =================================================
-                 COACH
-                 ================================================= -->
+            <?php elseif ($role === 'COACH'): ?>
 
-            <?php if ($role === 'COACH'): ?>
+                <!-- ====================================================
+                     COACH
+                     ==================================================== -->
 
-<<<<<<< HEAD
-                <!-- Dashboard -->
+                <div class="sidebar-section-title">
+                    Main
+                </div>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-dashboard.php"
-                    class="<?= $currentPage === 'coach-dashboard.php' ? 'active' : '' ?>"
+                    class="<?= navClass('coach-dashboard.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        🏠
-                    </span>
-
-                    <span class="nav-label">
-                        Dashboard
-                    </span>
-
+                    <span aria-hidden="true">🏠</span>
+                    <span>Dashboard</span>
                 </a>
 
 
-<<<<<<< HEAD
-                <!-- My Teams -->
+                <div class="sidebar-section-title">
+                    My Team
+                </div>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-teams.php"
-                    class="<?= $currentPage === 'coach-teams.php' ? 'active' : '' ?>"
+                    class="<?= navClass('coach-teams.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        👥
-                    </span>
-
-                    <span class="nav-label">
-                        My Teams
-                    </span>
-
+                    <span aria-hidden="true">🛡️</span>
+                    <span>My Teams</span>
                 </a>
 
-
-<<<<<<< HEAD
-                <!-- Team Players -->
-
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-players.php"
-                    class="<?= $currentPage === 'coach-players.php' ? 'active' : '' ?>"
+                    class="<?= navClass('coach-players.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        🏃
-                    </span>
-
-                    <span class="nav-label">
-                        Team Players
-                    </span>
-
+                    <span aria-hidden="true">👥</span>
+                    <span>My Players</span>
                 </a>
 
 
-<<<<<<< HEAD
-                <!-- My Matches -->
+                <div class="sidebar-section-title">
+                    My Matches
+                </div>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-matches.php"
-                    class="<?= $currentPage === 'coach-matches.php' ? 'active' : '' ?>"
+                    class="<?= navClass('coach-matches.php') ?>"
                 >
-
-                    <span class="nav-icon">
-                        ⚽
-                    </span>
-
-                    <span class="nav-label">
-                        My Matches
-                    </span>
-
+                    <span aria-hidden="true">📅</span>
+                    <span>My Matches</span>
                 </a>
 
 
-<<<<<<< HEAD
-                <!-- Team Statistics -->
+                <div class="sidebar-section-title">
+                    Performance
+                </div>
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 <a
                     href="coach-statistics.php"
-                    class="<?= $currentPage === 'coach-statistics.php' ? 'active' : '' ?>"
+                    class="<?= navClass('coach-statistics.php') ?>"
                 >
+                    <span aria-hidden="true">📊</span>
+                    <span>Team Statistics</span>
+                </a>
+                
+                <div class="sidebar-section-title">
+                    Account
+                </div>
 
-                    <span class="nav-icon">
-                        📊
-                    </span>
+                <a
+                    href="coach-profile.php"
+                    class="<?= navClass('coach-profile.php') ?>"
+                >
+                    <span aria-hidden="true">👤</span>
+                    <span>My Profile</span>
+                </a>
 
-                    <span class="nav-label">
-                        Team Statistics
-                    </span>
+            <?php elseif ($role === 'PLAYER'): ?>
 
+                <!-- ====================================================
+                     PLAYER
+                     ==================================================== -->
+
+                <div class="sidebar-section-title">
+                    Main
+                </div>
+
+                <a
+                    href="player-dashboard.php"
+                    class="<?= navClass('player-dashboard.php') ?>"
+                >
+                    <span aria-hidden="true">🏠</span>
+                    <span>Dashboard</span>
+                </a>
+
+
+                <div class="sidebar-section-title">
+                    My Sports
+                </div>
+
+                <a
+                    href="player-sports.php"
+                    class="<?= navClass('player-sports.php') ?>"
+                >
+                    <span aria-hidden="true">⚽</span>
+                    <span>My Sports</span>
+                </a>
+
+
+                <div class="sidebar-section-title">
+                    My Team
+                </div>
+
+                <a
+                    href="player-teams.php"
+                    class="<?= navClass('player-teams.php') ?>"
+                >
+                    <span aria-hidden="true">🛡️</span>
+                    <span>My Team</span>
+                </a>
+
+
+                <div class="sidebar-section-title">
+                    My Competitions
+                </div>
+
+                <a
+                    href="player-tournaments.php"
+                    class="<?= navClass('player-tournaments.php') ?>"
+                >
+                    <span aria-hidden="true">🏆</span>
+                    <span>My Tournaments</span>
+                </a>
+
+                <a
+                    href="player-matches.php"
+                    class="<?= navClass('player-matches.php') ?>"
+                >
+                    <span aria-hidden="true">📅</span>
+                    <span>My Matches</span>
+                </a>
+
+
+                <div class="sidebar-section-title">
+                    My Performance
+                </div>
+
+                <a
+                    href="player-statistics.php"
+                    class="<?= navClass('player-statistics.php') ?>"
+                >
+                    <span aria-hidden="true">📊</span>
+                    <span>My Statistics</span>
+                </a>
+
+
+                <div class="sidebar-section-title">
+                    Account
+                </div>
+
+                <a
+                    href="player-profile.php"
+                    class="<?= navClass('player-profile.php') ?>"
+                >
+                    <span aria-hidden="true">👤</span>
+                    <span>My Profile</span>
                 </a>
 
             <?php endif; ?>
-
-
-            <!-- =================================================
-                 DIVIDER
-                 ================================================= -->
-
-            <div class="sidebar-divider"></div>
-
-
-            <!-- =================================================
-                 LOGOUT
-                 ================================================= -->
-
-            <a
-                href="logout.php"
-                class="logout-link"
-            >
-
-                <span class="nav-icon">
-                    🚪
-                </span>
-
-                <span class="nav-label">
-                    Logout
-                </span>
-
-            </a>
 
         </nav>
 
 
-        <!-- =====================================================
+        <!-- ============================================================
              SIDEBAR FOOTER
-             ===================================================== -->
+             ============================================================ -->
 
         <div class="sidebar-footer">
 
-            <div class="sidebar-footer-line"></div>
-
-            <span>
-                SportSync
-            </span>
-
-            <small>
-                Smart Sports Management System
-            </small>
+            <a
+                href="logout.php"
+                class="sidebar-logout"
+            >
+                <span aria-hidden="true">🚪</span>
+                <span>Logout</span>
+            </a>
 
         </div>
 
     </aside>
 
 
-    <!-- =========================================================
+    <!-- ================================================================
          MOBILE OVERLAY
-         ========================================================= -->
+         ================================================================ -->
 
     <div
         class="sidebar-overlay"
         id="sidebarOverlay"
+        aria-hidden="true"
     ></div>
 
 
-    <!-- =========================================================
+    <!-- ================================================================
          MAIN CONTENT
-         ========================================================= -->
+         ================================================================ -->
 
     <main class="main-content">
 
-
-        <!-- =====================================================
-             TOPBAR
-             ===================================================== -->
+        <!-- ============================================================
+             TOP HEADER
+             ============================================================ -->
 
         <header class="topbar">
 
-            <button
-                type="button"
-                class="menu-button"
-                id="menuButton"
-                aria-label="Open navigation menu"
-            >
-                ☰
-            </button>
+            <div class="topbar-left">
+
+                <!--
+                    Hidden on desktop.
+                    Used only for mobile sidebar navigation.
+                -->
+
+                <button
+                    type="button"
+                    class="menu-toggle"
+                    id="menuButton"
+                    aria-label="Open navigation menu"
+                    aria-controls="sidebar"
+                    aria-expanded="false"
+                >
+                    ☰
+                </button>
+
+            </div>
 
 
             <div class="topbar-right">
 
-                <!-- User Information -->
-
-<<<<<<< HEAD
-                <?php if ($role === 'ADMIN'): ?>
-
-                    <a
-                        href="admin-profile.php"
-                        class="topbar-user"
-                        aria-label="Open Admin Profile"
-                    >
-
-                        <div class="topbar-avatar">
-                            👤
-                        </div>
-
-                        <div class="topbar-user-info">
-
-                            <strong>
-                                <?= htmlspecialchars(
-                                    $user['full_name'] ?? 'User',
-                                    ENT_QUOTES,
-                                    'UTF-8'
-                                ) ?>
-                            </strong>
-
-                            <span>
-                                <?= htmlspecialchars(
-                                    ucwords(
-                                        strtolower(
-                                            str_replace(
-                                                '_',
-                                                ' ',
-                                                $role
-                                            )
-                                        )
-                                    ),
-                                    ENT_QUOTES,
-                                    'UTF-8'
-                                ) ?>
-                            </span>
-
-                        </div>
-
-                    </a>
-
-                <?php else: ?>
-
-                    <div class="topbar-user">
-
-                        <div class="topbar-avatar">
-                            👤
-                        </div>
-
-                        <div class="topbar-user-info">
-
-                            <strong>
-                                <?= htmlspecialchars(
-                                    $user['full_name'] ?? 'User',
-                                    ENT_QUOTES,
-                                    'UTF-8'
-                                ) ?>
-                            </strong>
-
-                            <span>
-                                <?= htmlspecialchars(
-                                    ucwords(
-                                        strtolower(
-                                            str_replace(
-                                                '_',
-                                                ' ',
-                                                $role
-                                            )
-                                        )
-                                    ),
-                                    ENT_QUOTES,
-                                    'UTF-8'
-                                ) ?>
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                <?php endif; ?>
-=======
                 <div class="topbar-user">
 
-                    <div class="topbar-avatar">
-                        👤
+                    <div
+                        class="topbar-avatar"
+                        aria-hidden="true"
+                    >
+                        <?= headerEscape($initial) ?>
                     </div>
 
                     <div class="topbar-user-info">
 
-                        <strong>
-                            <?= htmlspecialchars(
-                                $user['full_name'] ?? 'User',
-                                ENT_QUOTES,
-                                'UTF-8'
-                            ) ?>
+                        <strong class="topbar-user-name">
+                            <?= headerEscape($fullName) ?>
                         </strong>
 
-                        <span>
-                            <?= htmlspecialchars(
-                                ucwords(
-                                    strtolower(
-                                        str_replace(
-                                            '_',
-                                            ' ',
-                                            $role
-                                        )
-                                    )
-                                ),
-                                ENT_QUOTES,
-                                'UTF-8'
-                            ) ?>
+                        <span class="topbar-user-role">
+                            <?= headerEscape($roleLabel) ?>
                         </span>
 
                     </div>
 
                 </div>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
             </div>
 
         </header>
 
 
-        <!-- =====================================================
-             PAGE CONTENT
-             ===================================================== -->
+        <!-- ============================================================
+             PAGE CONTAINER
+             ============================================================ -->
 
         <div class="page-container">

@@ -851,7 +851,6 @@ try {
         'User logged into SportSync.'
     );
 
-<<<<<<< HEAD
     $dashboardPage = match ($role) {
         'ADMIN' => 'admin-dashboard.php',
         'SPORTS_COORDINATOR' => 'coordinator-dashboard.php',
@@ -861,9 +860,6 @@ try {
     };
 
     header('Location: ' . $dashboardPage);
-=======
-    header('Location: dashboard.php');
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     exit;
 
 } catch (Throwable $exception) {

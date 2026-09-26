@@ -1,8 +1,5 @@
 <?php
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 declare(strict_types=1);
 
 /*
@@ -19,10 +16,7 @@ require_once __DIR__ . '/../includes/auth.php';
 | Require Login
 |--------------------------------------------------------------------------
 */
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 requireLogin();
 
 $user = currentUser();
@@ -32,10 +26,7 @@ $user = currentUser();
 | Admin-only access
 |--------------------------------------------------------------------------
 */
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 if (($user['role'] ?? '') !== 'ADMIN') {
     http_response_code(403);
     exit('Access denied.');
@@ -46,10 +37,7 @@ if (($user['role'] ?? '') !== 'ADMIN') {
 | Database
 |--------------------------------------------------------------------------
 */
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 $pdo = db();
 
 /*
@@ -57,10 +45,7 @@ $pdo = db();
 | Dashboard Statistics
 |--------------------------------------------------------------------------
 */
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 $totalStudents = 0;
 $pendingStudents = 0;
 $totalSports = 0;
@@ -70,37 +55,21 @@ $totalTournaments = 0;
 $totalMatches = 0;
 
 try {
-<<<<<<< HEAD
     $stmt = $pdo->query(
         "SELECT COUNT(*)
          FROM users
-=======
-    // Total registered students / users
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) 
-         FROM users 
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
          WHERE role_id = 4"
     );
     $totalStudents = (int) $stmt->fetchColumn();
 
-<<<<<<< HEAD
     $stmt = $pdo->query(
         "SELECT COUNT(*)
          FROM users
          WHERE role_id = 4
-=======
-    // Pending student accounts
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) 
-         FROM users 
-         WHERE role_id = 4 
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
          AND account_status = 'PENDING'"
     );
     $pendingStudents = (int) $stmt->fetchColumn();
 
-<<<<<<< HEAD
     $stmt = $pdo->query(
         "SELECT COUNT(*)
          FROM sports"
@@ -116,29 +85,10 @@ try {
     $stmt = $pdo->query(
         "SELECT COUNT(*)
          FROM users
-=======
-    // Sports
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) FROM sports"
-    );
-    $totalSports = (int) $stmt->fetchColumn();
-
-    // Teams
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) FROM teams"
-    );
-    $totalTeams = (int) $stmt->fetchColumn();
-
-    // Coaches
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) 
-         FROM users 
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
          WHERE role_id = 3"
     );
     $totalCoaches = (int) $stmt->fetchColumn();
 
-<<<<<<< HEAD
     $stmt = $pdo->query(
         "SELECT COUNT(*)
          FROM tournaments"
@@ -150,20 +100,6 @@ try {
          FROM matches"
     );
     $totalMatches = (int) $stmt->fetchColumn();
-=======
-    // Tournaments
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) FROM tournaments"
-    );
-    $totalTournaments = (int) $stmt->fetchColumn();
-
-    // Matches
-    $stmt = $pdo->query(
-        "SELECT COUNT(*) FROM matches"
-    );
-    $totalMatches = (int) $stmt->fetchColumn();
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 } catch (Throwable $e) {
     error_log(
         'Admin dashboard statistics error: ' .
@@ -176,10 +112,7 @@ try {
 | Recent Pending Students
 |--------------------------------------------------------------------------
 */
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 $recentPendingStudents = [];
 
 try {
@@ -197,10 +130,6 @@ try {
     );
 
     $recentPendingStudents = $stmt->fetchAll(PDO::FETCH_ASSOC);
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 } catch (Throwable $e) {
     error_log(
         'Admin pending students error: ' .
@@ -213,10 +142,7 @@ try {
 | Recent Tournaments
 |--------------------------------------------------------------------------
 */
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 $recentTournaments = [];
 
 try {
@@ -236,10 +162,6 @@ try {
     );
 
     $recentTournaments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 } catch (Throwable $e) {
     error_log(
         'Admin tournaments error: ' .
@@ -252,10 +174,7 @@ try {
 | Helper
 |--------------------------------------------------------------------------
 */
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 function e(?string $value): string
 {
     return htmlspecialchars(
@@ -288,7 +207,6 @@ function dashboardStatusClass(?string $status): string
     };
 }
 
-<<<<<<< HEAD
 /*
 |--------------------------------------------------------------------------
 | Admin Next Step
@@ -324,17 +242,11 @@ if ($hasAdminAction) {
 
 ?>
 
-=======
-?>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     <meta charset="UTF-8">
 
     <meta
@@ -361,20 +273,14 @@ if ($hasAdminAction) {
     >
 
     <style>
-<<<<<<< HEAD
 
         /* =========================================================
            SPORTSYNC ADMIN DASHBOARD
-=======
-        /* =========================================================
-           SportSync Admin Dashboard
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         ========================================================= */
 
         .admin-dashboard {
             display: flex;
             flex-direction: column;
-<<<<<<< HEAD
             gap: 26px;
         }
 
@@ -386,15 +292,6 @@ if ($hasAdminAction) {
             position: relative;
             overflow: hidden;
             padding: 30px 32px;
-=======
-            gap: 28px;
-        }
-
-        .admin-hero {
-            position: relative;
-            overflow: hidden;
-            padding: 32px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-radius: 24px;
             background:
                 linear-gradient(
@@ -432,11 +329,7 @@ if ($hasAdminAction) {
         .admin-hero-content {
             position: relative;
             z-index: 2;
-<<<<<<< HEAD
             max-width: 780px;
-=======
-            max-width: 760px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         }
 
         .admin-hero-label {
@@ -462,18 +355,12 @@ if ($hasAdminAction) {
 
         .admin-hero p {
             margin: 0;
-<<<<<<< HEAD
             max-width: 700px;
             color: rgba(255, 255, 255, 0.84);
-=======
-            max-width: 680px;
-            color: rgba(255, 255, 255, 0.82);
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             font-size: 15px;
             line-height: 1.7;
         }
 
-<<<<<<< HEAD
         /* =========================================================
            NEXT STEP
         ========================================================= */
@@ -586,8 +473,6 @@ if ($hasAdminAction) {
            STATISTICS
         ========================================================= */
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .admin-stats {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -597,26 +482,11 @@ if ($hasAdminAction) {
         .admin-stat-card {
             position: relative;
             overflow: hidden;
-<<<<<<< HEAD
             padding: 21px;
-=======
-            padding: 22px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border: 1px solid #e8edf5;
             border-radius: 18px;
             background: #ffffff;
             box-shadow: 0 8px 24px rgba(20, 35, 65, 0.06);
-<<<<<<< HEAD
-=======
-            transition:
-                transform 0.25s ease,
-                box-shadow 0.25s ease;
-        }
-
-        .admin-stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 15px 32px rgba(20, 35, 65, 0.10);
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         }
 
         .admin-stat-top {
@@ -624,42 +494,25 @@ if ($hasAdminAction) {
             align-items: center;
             justify-content: space-between;
             gap: 15px;
-<<<<<<< HEAD
             margin-bottom: 18px;
-=======
-            margin-bottom: 20px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         }
 
         .admin-stat-icon {
             display: flex;
             align-items: center;
             justify-content: center;
-<<<<<<< HEAD
             width: 45px;
             height: 45px;
             border-radius: 13px;
             background: #eef4ff;
             color: #1d4ed8;
             font-size: 20px;
-=======
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-            background: #eef4ff;
-            color: #1d4ed8;
-            font-size: 21px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         }
 
         .admin-stat-number {
             margin: 0;
             color: #111827;
-<<<<<<< HEAD
             font-size: 29px;
-=======
-            font-size: 30px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             font-weight: 800;
             line-height: 1;
         }
@@ -671,7 +524,6 @@ if ($hasAdminAction) {
             font-weight: 600;
         }
 
-<<<<<<< HEAD
         /* =========================================================
            MAIN WORK GRID
         ========================================================= */
@@ -681,24 +533,6 @@ if ($hasAdminAction) {
             grid-template-columns:
                 minmax(0, 1.45fr)
                 minmax(300px, 0.8fr);
-=======
-        .admin-stat-link {
-            display: inline-block;
-            margin-top: 16px;
-            color: #2563eb;
-            font-size: 12px;
-            font-weight: 700;
-            text-decoration: none;
-        }
-
-        .admin-stat-link:hover {
-            text-decoration: underline;
-        }
-
-        .admin-main-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.8fr);
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             gap: 22px;
         }
 
@@ -716,11 +550,7 @@ if ($hasAdminAction) {
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-<<<<<<< HEAD
             padding: 21px 24px;
-=======
-            padding: 22px 24px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-bottom: 1px solid #edf1f6;
         }
 
@@ -749,13 +579,10 @@ if ($hasAdminAction) {
             text-decoration: underline;
         }
 
-<<<<<<< HEAD
         /* =========================================================
            PENDING STUDENTS TABLE
         ========================================================= */
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .admin-table-wrap {
             width: 100%;
             overflow-x: auto;
@@ -763,21 +590,12 @@ if ($hasAdminAction) {
 
         .admin-table {
             width: 100%;
-<<<<<<< HEAD
             min-width: 560px;
             border-collapse: collapse;
         }
 
         .admin-table th {
             padding: 13px 20px;
-=======
-            border-collapse: collapse;
-            min-width: 580px;
-        }
-
-        .admin-table th {
-            padding: 14px 20px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             background: #f8fafc;
             color: #64748b;
             font-size: 11px;
@@ -788,11 +606,7 @@ if ($hasAdminAction) {
         }
 
         .admin-table td {
-<<<<<<< HEAD
             padding: 15px 20px;
-=======
-            padding: 16px 20px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-top: 1px solid #edf1f6;
             color: #334155;
             font-size: 13px;
@@ -839,7 +653,6 @@ if ($hasAdminAction) {
             color: #475569;
         }
 
-<<<<<<< HEAD
         .admin-empty {
             padding: 38px 24px;
             color: #64748b;
@@ -851,8 +664,6 @@ if ($hasAdminAction) {
            COMMON TASKS
         ========================================================= */
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .admin-actions {
             display: flex;
             flex-direction: column;
@@ -862,11 +673,7 @@ if ($hasAdminAction) {
             display: flex;
             align-items: center;
             gap: 15px;
-<<<<<<< HEAD
             padding: 16px 22px;
-=======
-            padding: 17px 22px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-bottom: 1px solid #edf1f6;
             color: #1e293b;
             text-decoration: none;
@@ -916,13 +723,10 @@ if ($hasAdminAction) {
             font-size: 18px;
         }
 
-<<<<<<< HEAD
         /* =========================================================
            RECENT TOURNAMENTS
         ========================================================= */
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         .admin-tournament-list {
             display: flex;
             flex-direction: column;
@@ -932,11 +736,7 @@ if ($hasAdminAction) {
             display: flex;
             align-items: center;
             gap: 15px;
-<<<<<<< HEAD
             padding: 17px 22px;
-=======
-            padding: 18px 22px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-bottom: 1px solid #edf1f6;
         }
 
@@ -948,13 +748,8 @@ if ($hasAdminAction) {
             display: flex;
             align-items: center;
             justify-content: center;
-<<<<<<< HEAD
             width: 43px;
             height: 43px;
-=======
-            width: 44px;
-            height: 44px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             flex: 0 0 auto;
             border-radius: 13px;
             background: #f0fdf4;
@@ -981,83 +776,49 @@ if ($hasAdminAction) {
             font-size: 11px;
         }
 
-<<<<<<< HEAD
         /* =========================================================
            SYSTEM INFORMATION
         ========================================================= */
 
         .admin-overview-grid {
-=======
-        .admin-empty {
-            padding: 40px 24px;
-            color: #94a3b8;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        .admin-bottom-grid {
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 18px;
         }
 
-<<<<<<< HEAD
         .admin-overview-card {
             padding: 21px;
-=======
-        .admin-mini-card {
-            padding: 22px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border: 1px solid #e8edf5;
             border-radius: 18px;
             background: #ffffff;
             box-shadow: 0 8px 24px rgba(20, 35, 65, 0.05);
         }
 
-<<<<<<< HEAD
         .admin-overview-icon {
-=======
-        .admin-mini-card-icon {
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             display: flex;
             align-items: center;
             justify-content: center;
             width: 42px;
             height: 42px;
-<<<<<<< HEAD
             margin-bottom: 15px;
-=======
-            margin-bottom: 17px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             border-radius: 12px;
             background: #eef4ff;
             font-size: 18px;
         }
 
-<<<<<<< HEAD
         .admin-overview-card h3 {
-=======
-        .admin-mini-card h3 {
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             margin: 0;
             color: #111827;
             font-size: 15px;
         }
 
-<<<<<<< HEAD
         .admin-overview-card p {
             margin: 7px 0 13px;
-=======
-        .admin-mini-card p {
-            margin: 7px 0 18px;
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             color: #64748b;
             font-size: 12px;
             line-height: 1.6;
         }
 
-<<<<<<< HEAD
         .admin-overview-value {
             color: #2563eb;
             font-size: 21px;
@@ -1070,20 +831,6 @@ if ($hasAdminAction) {
 
         @media (max-width: 1100px) {
 
-=======
-        .admin-mini-card a {
-            color: #2563eb;
-            font-size: 12px;
-            font-weight: 750;
-            text-decoration: none;
-        }
-
-        .admin-mini-card a:hover {
-            text-decoration: underline;
-        }
-
-        @media (max-width: 1100px) {
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             .admin-stats {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -1092,30 +839,22 @@ if ($hasAdminAction) {
                 grid-template-columns: 1fr;
             }
 
-<<<<<<< HEAD
             .admin-overview-grid {
-=======
-            .admin-bottom-grid {
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 grid-template-columns: 1fr;
             }
         }
 
         @media (max-width: 700px) {
-<<<<<<< HEAD
 
             .admin-dashboard {
                 gap: 20px;
             }
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             .admin-hero {
                 padding: 24px;
                 border-radius: 20px;
             }
 
-<<<<<<< HEAD
             .admin-next-step {
                 flex-direction: column;
                 align-items: stretch;
@@ -1126,8 +865,6 @@ if ($hasAdminAction) {
                 width: 100%;
             }
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             .admin-stats {
                 grid-template-columns: 1fr;
             }
@@ -1142,13 +879,9 @@ if ($hasAdminAction) {
                 padding-right: 15px;
             }
         }
-<<<<<<< HEAD
 
     </style>
 
-=======
-    </style>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 </head>
 
 <body>
@@ -1162,10 +895,7 @@ if ($hasAdminAction) {
         <!-- =====================================================
              HERO
         ====================================================== -->
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         <section class="admin-hero">
 
             <div class="admin-hero-content">
@@ -1180,22 +910,15 @@ if ($hasAdminAction) {
                 </h1>
 
                 <p>
-<<<<<<< HEAD
                     Your role is to keep SportSync organized and running
                     smoothly. Manage student access, teams and
                     tournaments, and monitor the overall sports system.
-=======
-                    Manage students, sports, teams, tournaments and
-                    matches from one central SportSync administration
-                    dashboard.
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 </p>
 
             </div>
 
         </section>
 
-<<<<<<< HEAD
         <!-- =====================================================
              YOUR NEXT STEP
         ====================================================== -->
@@ -1263,12 +986,6 @@ if ($hasAdminAction) {
              PRIMARY STATISTICS
         ====================================================== -->
 
-=======
-
-        <!-- =====================================================
-             STATISTICS
-        ====================================================== -->
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         <section class="admin-stats">
 
             <article class="admin-stat-card">
@@ -1289,21 +1006,8 @@ if ($hasAdminAction) {
                     Registered Students
                 </p>
 
-<<<<<<< HEAD
             </article>
 
-=======
-                <a
-                    href="admin-pending-students.php"
-                    class="admin-stat-link"
-                >
-                    Manage Students →
-                </a>
-
-            </article>
-
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <article class="admin-stat-card">
 
                 <div class="admin-stat-top">
@@ -1322,21 +1026,8 @@ if ($hasAdminAction) {
                     Sports
                 </p>
 
-<<<<<<< HEAD
             </article>
 
-=======
-                <a
-                    href="admin-dashboard.php"
-                    class="admin-stat-link"
-                >
-                    View Sports →
-                </a>
-
-            </article>
-
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <article class="admin-stat-card">
 
                 <div class="admin-stat-top">
@@ -1355,21 +1046,8 @@ if ($hasAdminAction) {
                     Teams
                 </p>
 
-<<<<<<< HEAD
             </article>
 
-=======
-                <a
-                    href="admin-teams.php"
-                    class="admin-stat-link"
-                >
-                    Manage Teams →
-                </a>
-
-            </article>
-
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <article class="admin-stat-card">
 
                 <div class="admin-stat-top">
@@ -1388,21 +1066,10 @@ if ($hasAdminAction) {
                     Tournaments
                 </p>
 
-<<<<<<< HEAD
-=======
-                <a
-                    href="admin-tournaments.php"
-                    class="admin-stat-link"
-                >
-                    Manage Tournaments →
-                </a>
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             </article>
 
         </section>
 
-<<<<<<< HEAD
         <!-- =====================================================
              MAIN WORK AREA
         ====================================================== -->
@@ -1411,21 +1078,11 @@ if ($hasAdminAction) {
 
             <!-- STUDENT APPROVALS -->
 
-=======
-
-        <!-- =====================================================
-             MAIN GRID
-        ====================================================== -->
-        <section class="admin-main-grid">
-
-            <!-- Pending Students -->
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <div class="admin-panel">
 
                 <div class="admin-panel-header">
 
                     <div>
-<<<<<<< HEAD
 
                         <h2 class="admin-panel-title">
                             Student Approvals
@@ -1435,15 +1092,6 @@ if ($hasAdminAction) {
                             Student registrations that need your decision
                         </p>
 
-=======
-                        <h2 class="admin-panel-title">
-                            Pending Student Approvals
-                        </h2>
-
-                        <p class="admin-panel-subtitle">
-                            Students waiting for administrator approval
-                        </p>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     </div>
 
                     <a
@@ -1462,7 +1110,6 @@ if ($hasAdminAction) {
                         <table class="admin-table">
 
                             <thead>
-<<<<<<< HEAD
 
                                 <tr>
 
@@ -1480,13 +1127,6 @@ if ($hasAdminAction) {
 
                                 </tr>
 
-=======
-                                <tr>
-                                    <th>Student</th>
-                                    <th>Registered</th>
-                                    <th>Status</th>
-                                </tr>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                             </thead>
 
                             <tbody>
@@ -1539,19 +1179,13 @@ if ($hasAdminAction) {
 
             </div>
 
-<<<<<<< HEAD
             <!-- COMMON TASKS -->
 
-=======
-
-            <!-- Quick Actions -->
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <div class="admin-panel">
 
                 <div class="admin-panel-header">
 
                     <div>
-<<<<<<< HEAD
 
                         <h2 class="admin-panel-title">
                             Common Tasks
@@ -1561,15 +1195,6 @@ if ($hasAdminAction) {
                             Actions you may need to perform regularly
                         </p>
 
-=======
-                        <h2 class="admin-panel-title">
-                            Quick Management
-                        </h2>
-
-                        <p class="admin-panel-subtitle">
-                            Frequently used administration tools
-                        </p>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     </div>
 
                 </div>
@@ -1577,11 +1202,7 @@ if ($hasAdminAction) {
                 <div class="admin-actions">
 
                     <a
-<<<<<<< HEAD
                         href="admin-students.php"
-=======
-                        href="admin-pending-students.php"
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                         class="admin-action"
                     >
 
@@ -1592,20 +1213,11 @@ if ($hasAdminAction) {
                         <span class="admin-action-content">
 
                             <span class="admin-action-title">
-<<<<<<< HEAD
                                 Manage Students
                             </span>
 
                             <span class="admin-action-description">
                                 View and manage registered students
-=======
-                                Student Approvals
-                            </span>
-
-                            <span class="admin-action-description">
-                                <?= $pendingStudents; ?>
-                                pending approval
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                             </span>
 
                         </span>
@@ -1616,10 +1228,6 @@ if ($hasAdminAction) {
 
                     </a>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     <a
                         href="admin-teams.php"
                         class="admin-action"
@@ -1636,11 +1244,7 @@ if ($hasAdminAction) {
                             </span>
 
                             <span class="admin-action-description">
-<<<<<<< HEAD
                                 View teams and manage team setup
-=======
-                                View and manage sports teams
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                             </span>
 
                         </span>
@@ -1651,10 +1255,6 @@ if ($hasAdminAction) {
 
                     </a>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     <a
                         href="admin-tournaments.php"
                         class="admin-action"
@@ -1682,10 +1282,6 @@ if ($hasAdminAction) {
 
                     </a>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     <a
                         href="create-team.php"
                         class="admin-action"
@@ -1719,26 +1315,16 @@ if ($hasAdminAction) {
 
         </section>
 
-<<<<<<< HEAD
         <!-- =====================================================
              RECENT TOURNAMENTS
         ====================================================== -->
 
-=======
-
-        <!-- =====================================================
-             RECENT TOURNAMENTS
-        ====================================================== -->
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         <section class="admin-panel">
 
             <div class="admin-panel-header">
 
                 <div>
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     <h2 class="admin-panel-title">
                         Recent Tournaments
                     </h2>
@@ -1746,10 +1332,7 @@ if ($hasAdminAction) {
                     <p class="admin-panel-subtitle">
                         Latest competitions created in SportSync
                     </p>
-<<<<<<< HEAD
 
-=======
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 </div>
 
                 <a
@@ -1761,10 +1344,6 @@ if ($hasAdminAction) {
 
             </div>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <?php if (!empty($recentTournaments)): ?>
 
                 <div class="admin-tournament-list">
@@ -1800,7 +1379,6 @@ if ($hasAdminAction) {
                             </div>
 
                             <span
-<<<<<<< HEAD
                                 class="admin-status <?= dashboardStatusClass(
                                     $tournament['tournament_status'] ?? ''
                                 ); ?>"
@@ -1808,11 +1386,6 @@ if ($hasAdminAction) {
                                 <?= e(
                                     $tournament['tournament_status'] ?? 'N/A'
                                 ); ?>
-=======
-                                class="admin-status <?= dashboardStatusClass($tournament['tournament_status'] ?? ''); ?>"
-                            >
-                                <?= e($tournament['tournament_status'] ?? 'N/A'); ?>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                             </span>
 
                         </div>
@@ -1831,7 +1404,6 @@ if ($hasAdminAction) {
 
         </section>
 
-<<<<<<< HEAD
         <!-- =====================================================
              SYSTEM SNAPSHOT
         ====================================================== -->
@@ -1863,17 +1435,6 @@ if ($hasAdminAction) {
             <article class="admin-overview-card">
 
                 <div class="admin-overview-icon">
-=======
-
-        <!-- =====================================================
-             SYSTEM OVERVIEW
-        ====================================================== -->
-        <section class="admin-bottom-grid">
-
-            <article class="admin-mini-card">
-
-                <div class="admin-mini-card-icon">
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     👨‍🏫
                 </div>
 
@@ -1882,7 +1443,6 @@ if ($hasAdminAction) {
                 </h3>
 
                 <p>
-<<<<<<< HEAD
                     Coaches currently registered in SportSync.
                 </p>
 
@@ -1897,22 +1457,6 @@ if ($hasAdminAction) {
             <article class="admin-overview-card">
 
                 <div class="admin-overview-icon">
-=======
-                    Currently registered coaches in the SportSync
-                    system.
-                </p>
-
-                <strong>
-                    <?= $totalCoaches; ?> Coaches
-                </strong>
-
-            </article>
-
-
-            <article class="admin-mini-card">
-
-                <div class="admin-mini-card-icon">
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     ⚽
                 </div>
 
@@ -1921,7 +1465,6 @@ if ($hasAdminAction) {
                 </h3>
 
                 <p>
-<<<<<<< HEAD
                     Matches currently recorded in the system.
                 </p>
 
@@ -1950,37 +1493,6 @@ if ($hasAdminAction) {
                 <div class="admin-overview-value">
                     <?= $totalSports; ?>
                 </div>
-=======
-                    Total matches currently scheduled across
-                    tournaments.
-                </p>
-
-                <strong>
-                    <?= $totalMatches; ?> Matches
-                </strong>
-
-            </article>
-
-
-            <article class="admin-mini-card">
-
-                <div class="admin-mini-card-icon">
-                    ⏳
-                </div>
-
-                <h3>
-                    Pending Approvals
-                </h3>
-
-                <p>
-                    Student registrations that require
-                    administrator action.
-                </p>
-
-                <strong>
-                    <?= $pendingStudents; ?> Pending
-                </strong>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
             </article>
 

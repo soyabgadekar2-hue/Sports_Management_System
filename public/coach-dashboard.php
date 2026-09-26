@@ -1,8 +1,4 @@
 <?php
-<<<<<<< HEAD
-=======
-declare(strict_types=1);
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 
 require_once __DIR__ . '/../config/app.php';
 require_once __DIR__ . '/../config/database.php';
@@ -127,7 +123,6 @@ $stmt = $db->prepare("
 $stmt->execute([$coachId, $coachId]);
 $completedMatches = (int) $stmt->fetchColumn();
 
-<<<<<<< HEAD
 $pageTitle = 'Coach Dashboard';
 
 require_once __DIR__ . '/../includes/header.php';
@@ -493,11 +488,6 @@ require_once __DIR__ . '/../includes/header.php';
     }
 </style>
 
-=======
-require_once __DIR__ . '/../includes/header.php';
-?>
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
 <div class="coach-dashboard">
 
     <!-- Welcome -->
@@ -514,28 +504,16 @@ require_once __DIR__ . '/../includes/header.php';
             </p>
         </div>
 
-<<<<<<< HEAD
         <div class="coach-welcome-icon" aria-hidden="true">
-=======
-        <div class="coach-welcome-icon">
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             ⚽
         </div>
     </section>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     <!-- Statistics -->
     <section class="coach-stats-grid">
 
         <div class="coach-stat-card">
-<<<<<<< HEAD
             <div class="coach-stat-icon teams-icon" aria-hidden="true">
-=======
-            <div class="coach-stat-icon teams-icon">
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 👥
             </div>
 
@@ -545,14 +523,8 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-<<<<<<< HEAD
         <div class="coach-stat-card">
             <div class="coach-stat-icon players-icon" aria-hidden="true">
-=======
-
-        <div class="coach-stat-card">
-            <div class="coach-stat-icon players-icon">
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 🏃
             </div>
 
@@ -562,14 +534,8 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-<<<<<<< HEAD
         <div class="coach-stat-card">
             <div class="coach-stat-icon upcoming-icon" aria-hidden="true">
-=======
-
-        <div class="coach-stat-card">
-            <div class="coach-stat-icon upcoming-icon">
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 ⚽
             </div>
 
@@ -579,14 +545,8 @@ require_once __DIR__ . '/../includes/header.php';
             </div>
         </div>
 
-<<<<<<< HEAD
         <div class="coach-stat-card">
             <div class="coach-stat-icon completed-icon" aria-hidden="true">
-=======
-
-        <div class="coach-stat-card">
-            <div class="coach-stat-icon completed-icon">
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 ✓
             </div>
 
@@ -598,10 +558,6 @@ require_once __DIR__ . '/../includes/header.php';
 
     </section>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
     <!-- Coach Information -->
     <section class="coach-profile-card">
 
@@ -609,13 +565,8 @@ require_once __DIR__ . '/../includes/header.php';
 
             <div class="coach-profile-title">
 
-<<<<<<< HEAD
                 <div class="coach-profile-avatar" aria-hidden="true">
                     <?= htmlspecialchars(strtoupper(substr($coach['full_name'], 0, 1))) ?>
-=======
-                <div class="coach-profile-avatar">
-                    <?= strtoupper(substr($coach['full_name'], 0, 1)) ?>
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                 </div>
 
                 <div>
@@ -631,10 +582,6 @@ require_once __DIR__ . '/../includes/header.php';
 
         </div>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
         <div class="coach-profile-grid">
 
             <div class="coach-profile-item">
@@ -644,10 +591,6 @@ require_once __DIR__ . '/../includes/header.php';
                 </strong>
             </div>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <div class="coach-profile-item">
                 <span>Employee ID</span>
                 <strong>
@@ -655,10 +598,6 @@ require_once __DIR__ . '/../includes/header.php';
                 </strong>
             </div>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <div class="coach-profile-item">
                 <span>Email</span>
                 <strong>
@@ -666,10 +605,6 @@ require_once __DIR__ . '/../includes/header.php';
                 </strong>
             </div>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <div class="coach-profile-item">
                 <span>Phone</span>
                 <strong>
@@ -677,10 +612,6 @@ require_once __DIR__ . '/../includes/header.php';
                 </strong>
             </div>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <div class="coach-profile-item">
                 <span>Designation</span>
                 <strong>
@@ -688,10 +619,6 @@ require_once __DIR__ . '/../includes/header.php';
                 </strong>
             </div>
 
-<<<<<<< HEAD
-=======
-
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
             <div class="coach-profile-item">
                 <span>Specialization</span>
                 <strong>

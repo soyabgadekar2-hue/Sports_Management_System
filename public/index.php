@@ -3524,11 +3524,7 @@
                     </span>
 
                     <h2 class="section-title">
-<<<<<<< HEAD
                         One Platform For Every Game
-=======
-                        One platform for every game
->>>>>>> ccc7118f48dd83317d5b46fb434755dfa5a39d72
                     </h2>
 
                     <p class="section-description">

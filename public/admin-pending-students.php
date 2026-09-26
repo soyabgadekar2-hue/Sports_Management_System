@@ -1,20 +1,36 @@
 <?php
 declare(strict_types=1);
 
-ini_set('display_errors', '1');
-ini_set('display_startup_errors', '1');
-error_reporting(E_ALL);
+/*
+|--------------------------------------------------------------------------
+| SportSync - Pending Student Management
+|--------------------------------------------------------------------------
+| Shows student accounts waiting for approval.
+| Accessible by:
+| - ADMIN
+| - SPORTS_COORDINATOR
+|--------------------------------------------------------------------------
+*/
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/authorization.php';
 require_once __DIR__ . '/../includes/csrf.php';
-require_once __DIR__ . '/../includes/audit.php';
 
 requireLogin();
-requireRole('ADMIN', 'SPORTS_COORDINATOR');
+
+requireAnyRole([
+    'ADMIN',
+    'SPORTS_COORDINATOR'
+]);
 
 $pdo = db();
+
+/*
+|--------------------------------------------------------------------------
+| Fetch Pending Students
+|--------------------------------------------------------------------------
+*/
 
 $statement = $pdo->query(
     'SELECT
@@ -40,8 +56,13 @@ $statement = $pdo->query(
 
 $students = $statement->fetchAll(PDO::FETCH_ASSOC);
 
-$currentUser = currentUser();
-$userRole = $_SESSION['role'] ?? '';
+$pendingCount = count($students);
+
+/*
+|--------------------------------------------------------------------------
+| Helper
+|--------------------------------------------------------------------------
+*/
 
 function e(?string $value): string
 {
@@ -51,647 +72,512 @@ function e(?string $value): string
         'UTF-8'
     );
 }
+
+$pageTitle = 'Pending Students';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
+<?php require_once __DIR__ . '/../includes/header.php'; ?>
 
-<head>
+<style>
+    /*
+    |--------------------------------------------------------------------------
+    | Pending Students Page
+    |--------------------------------------------------------------------------
+    */
 
-    <meta charset="UTF-8">
+    .student-management-page {
+        width: 100%;
+    }
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    .student-management-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
 
-    <meta
-        name="description"
-        content="SportSync - Pending Student Registrations"
-    >
+    .student-management-heading {
+        min-width: 0;
+    }
 
-    <title>Pending Students | SportSync</title>
+    .student-management-heading h1 {
+        margin: 0;
+        color: var(--text-primary, #172033);
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1.2;
+    }
 
-    <link
-        rel="icon"
-        type="image/svg+xml"
-        href="../assets/images/sportsync-mark.svg"
-    >
+    .student-management-heading p {
+        margin: 8px 0 0;
+        max-width: 720px;
+        color: var(--text-secondary, #667085);
+        font-size: 14px;
+        line-height: 1.6;
+    }
 
-    <style>
+    .student-pending-summary {
+        flex: 0 0 auto;
+        min-width: 150px;
+        padding: 16px 20px;
+        border: 1px solid #f2d48b;
+        border-radius: 14px;
+        background: #fff8e7;
+        text-align: center;
+    }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    .student-pending-summary strong {
+        display: block;
+        color: #946200;
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
 
-        body {
-            min-height: 100vh;
+    .student-pending-summary span {
+        display: block;
+        margin-top: 4px;
+        color: #7a5a12;
+        font-size: 11px;
+        font-weight: 700;
+    }
 
-            font-family:
-                Inter,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Roboto,
-                Arial,
-                sans-serif;
+    /*
+    |--------------------------------------------------------------------------
+    | Breadcrumb
+    |--------------------------------------------------------------------------
+    */
 
-            color: #172033;
+    .student-breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        color: var(--text-muted, #98a2b3);
+        font-size: 13px;
+    }
 
-            background:
-                radial-gradient(
-                    circle at top left,
-                    rgba(37, 99, 235, 0.10),
-                    transparent 30%
-                ),
-                #f5f8ff;
-        }
+    .student-breadcrumb a {
+        color: var(--primary, #2563eb);
+        font-weight: 650;
+        text-decoration: none;
+    }
 
-        .topbar {
-            height: 72px;
+    .student-breadcrumb a:hover {
+        text-decoration: underline;
+    }
 
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+    /*
+    |--------------------------------------------------------------------------
+    | Main Card
+    |--------------------------------------------------------------------------
+    */
 
-            padding: 0 34px;
+    .student-management-card {
+        overflow: hidden;
+        background: #ffffff;
+        border: 1px solid var(--border-color, #e4e9f2);
+        border-radius: 16px;
+        box-shadow: 0 8px 28px rgba(15, 23, 42, 0.05);
+    }
 
-            background: #ffffff;
+    .student-management-card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 20px 22px;
+        border-bottom: 1px solid #eaecf0;
+    }
 
-            border-bottom: 1px solid #e5e7eb;
+    .student-management-card-title h2 {
+        margin: 0;
+        color: #101828;
+        font-size: 17px;
+        font-weight: 750;
+    }
 
-            box-shadow:
-                0 3px 15px rgba(15, 23, 42, 0.04);
-        }
+    .student-management-card-title p {
+        margin: 5px 0 0;
+        color: #667085;
+        font-size: 12px;
+        line-height: 1.5;
+    }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 11px;
-        }
+    .student-count-label {
+        flex: 0 0 auto;
+        padding: 7px 11px;
+        border-radius: 999px;
+        background: #eef4ff;
+        color: #155eef;
+        font-size: 11px;
+        font-weight: 750;
+        white-space: nowrap;
+    }
 
-        .brand-logo {
-            width: 42px;
-            height: 42px;
-            object-fit: contain;
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | Table
+    |--------------------------------------------------------------------------
+    */
 
-        .brand-text {
-            display: flex;
+    .student-table-wrapper {
+        width: 100%;
+        overflow-x: auto;
+    }
+
+    .student-table {
+        width: 100%;
+        min-width: 1120px;
+        border-collapse: collapse;
+    }
+
+    .student-table th {
+        padding: 13px 16px;
+        background: #f8fafc;
+        border-bottom: 1px solid #eaecf0;
+        color: #667085;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.45px;
+        text-align: left;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .student-table td {
+        padding: 16px;
+        border-bottom: 1px solid #f0f2f5;
+        color: #344054;
+        font-size: 13px;
+        vertical-align: middle;
+    }
+
+    .student-table tbody tr {
+        transition: background 0.18s ease;
+    }
+
+    .student-table tbody tr:hover {
+        background: #fafcff;
+    }
+
+    .student-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Student Information
+    |--------------------------------------------------------------------------
+    */
+
+    .student-primary-info {
+        min-width: 190px;
+    }
+
+    .student-name {
+        color: #101828;
+        font-size: 13px;
+        font-weight: 750;
+        line-height: 1.4;
+    }
+
+    .student-email {
+        margin-top: 4px;
+        color: #667085;
+        font-size: 11px;
+        line-height: 1.4;
+    }
+
+    .student-phone {
+        margin-top: 3px;
+        color: #98a2b3;
+        font-size: 11px;
+    }
+
+    .student-id {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 9px;
+        border-radius: 7px;
+        background: #eef4ff;
+        color: #155eef;
+        font-size: 11px;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .student-secondary {
+        color: #475467;
+        line-height: 1.4;
+    }
+
+    .student-muted {
+        color: #98a2b3;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Status
+    |--------------------------------------------------------------------------
+    */
+
+    .student-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 999px;
+        background: #fff8e7;
+        color: #946200;
+        font-size: 11px;
+        font-weight: 750;
+        white-space: nowrap;
+    }
+
+    .student-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #e9a400;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Actions
+    |--------------------------------------------------------------------------
+    */
+
+    .student-actions {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+    }
+
+    .student-action-form {
+        display: inline-flex;
+        margin: 0;
+    }
+
+    .student-action-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 76px;
+        height: 34px;
+        padding: 0 11px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 750;
+        cursor: pointer;
+        transition:
+            background 0.18s ease,
+            border-color 0.18s ease,
+            transform 0.18s ease,
+            box-shadow 0.18s ease;
+    }
+
+    .student-action-button:hover {
+        transform: translateY(-1px);
+    }
+
+    .student-action-button:focus-visible {
+        outline: 3px solid rgba(37, 99, 235, 0.18);
+        outline-offset: 2px;
+    }
+
+    .student-approve-button {
+        background: #e8f7ee;
+        border-color: #b8e4c8;
+        color: #16743a;
+    }
+
+    .student-approve-button:hover {
+        background: #d9f2e2;
+        box-shadow: 0 4px 12px rgba(22, 116, 58, 0.10);
+    }
+
+    .student-reject-button {
+        background: #fff0ef;
+        border-color: #f2c4c0;
+        color: #b42318;
+    }
+
+    .student-reject-button:hover {
+        background: #ffe4e1;
+        box-shadow: 0 4px 12px rgba(180, 35, 24, 0.10);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Empty State
+    |--------------------------------------------------------------------------
+    */
+
+    .student-empty-state {
+        padding: 70px 25px;
+        text-align: center;
+    }
+
+    .student-empty-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 68px;
+        height: 68px;
+        margin: 0 auto 17px;
+        border-radius: 50%;
+        background: #eef4ff;
+        color: #155eef;
+        font-size: 27px;
+        font-weight: 800;
+    }
+
+    .student-empty-state h3 {
+        margin: 0;
+        color: #101828;
+        font-size: 19px;
+        font-weight: 750;
+    }
+
+    .student-empty-state p {
+        max-width: 470px;
+        margin: 8px auto 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.65;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Loading State
+    |--------------------------------------------------------------------------
+    */
+
+    .student-action-button.is-processing {
+        pointer-events: none;
+        opacity: 0.65;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Responsive
+    |--------------------------------------------------------------------------
+    */
+
+    @media (max-width: 900px) {
+        .student-management-header {
             flex-direction: column;
         }
 
-        .brand-name {
-            color: #155eef;
-            font-size: 21px;
-            font-weight: 800;
-            line-height: 1.1;
-        }
-
-        .brand-tagline {
-            margin-top: 3px;
-            color: #98a2b3;
-            font-size: 10px;
-            font-weight: 500;
-        }
-
-        .topbar-right {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-        }
-
-        .user-info {
-            text-align: right;
-        }
-
-        .user-name {
-            color: #344054;
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        .user-role {
-            margin-top: 2px;
-            color: #667085;
-            font-size: 11px;
-        }
-
-        .logout-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-
-            height: 38px;
-
-            padding: 0 16px;
-
-            border-radius: 9px;
-
-            text-decoration: none;
-
-            background: #ffffff;
-            border: 1px solid #d0d5dd;
-
-            color: #344054;
-
-            font-size: 13px;
-            font-weight: 700;
-
-            transition:
-                background 0.2s ease,
-                transform 0.2s ease;
-        }
-
-        .logout-btn:hover {
-            background: #f9fafb;
-            transform: translateY(-1px);
-        }
-
-        .page {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 34px 28px 50px;
-        }
-
-        .breadcrumb {
-            margin-bottom: 20px;
-        }
-
-        .breadcrumb a {
-            color: #155eef;
-            text-decoration: none;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        .breadcrumb span {
-            color: #98a2b3;
-            margin: 0 7px;
-        }
-
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-
-            gap: 20px;
-
-            margin-bottom: 28px;
-        }
-
-        .page-title h1 {
-            color: #101828;
-            font-size: 29px;
-            font-weight: 800;
-            letter-spacing: -0.6px;
-        }
-
-        .page-title p {
-            margin-top: 7px;
-            color: #667085;
-            font-size: 14px;
-        }
-
-        .pending-count {
-            min-width: 120px;
-
-            padding: 13px 17px;
-
-            border-radius: 12px;
-
-            background: #fff8e7;
-            border: 1px solid #f2d48b;
-
-            text-align: center;
-        }
-
-        .pending-count strong {
-            display: block;
-
-            color: #946200;
-
-            font-size: 21px;
-            font-weight: 800;
-        }
-
-        .pending-count span {
-            display: block;
-
-            margin-top: 2px;
-
-            color: #7a5a12;
-
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .card {
-            background: #ffffff;
-
-            border: 1px solid #e4e9f2;
-
-            border-radius: 18px;
-
-            box-shadow:
-                0 10px 35px rgba(15, 23, 42, 0.06);
-
-            overflow: hidden;
-        }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            padding: 20px 22px;
-
-            border-bottom: 1px solid #eaecf0;
-        }
-
-        .card-header h2 {
-            color: #101828;
-            font-size: 17px;
-            font-weight: 750;
-        }
-
-        .card-header p {
-            margin-top: 4px;
-            color: #667085;
-            font-size: 12px;
-        }
-
-        .table-wrapper {
+        .student-pending-summary {
             width: 100%;
-            overflow-x: auto;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .student-management-heading h1 {
+            font-size: 24px;
         }
 
-        table {
-            width: 100%;
-            min-width: 1050px;
-
-            border-collapse: collapse;
+        .student-management-card-header {
+            align-items: flex-start;
+            flex-direction: column;
         }
 
-        th {
-            padding: 13px 17px;
-
-            background: #f8fafc;
-
-            border-bottom: 1px solid #eaecf0;
-
-            color: #667085;
-
-            font-size: 11px;
-            font-weight: 750;
-
-            text-align: left;
-
-            text-transform: uppercase;
-            letter-spacing: 0.4px;
-
-            white-space: nowrap;
+        .student-count-label {
+            align-self: flex-start;
         }
+    }
+</style>
 
-        td {
-            padding: 17px;
+<div class="student-management-page">
 
-            border-bottom: 1px solid #f0f2f5;
-
-            color: #344054;
-
-            font-size: 13px;
-
-            vertical-align: middle;
-        }
-
-        tbody tr {
-            transition: background 0.15s ease;
-        }
-
-        tbody tr:hover {
-            background: #fafcff;
-        }
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .student-name {
-            color: #101828;
-            font-weight: 700;
-        }
-
-        .student-email {
-            margin-top: 4px;
-            color: #667085;
-            font-size: 12px;
-        }
-
-        .student-id {
-            display: inline-flex;
-
-            padding: 5px 9px;
-
-            border-radius: 7px;
-
-            background: #eef4ff;
-
-            color: #155eef;
-
-            font-size: 11px;
-            font-weight: 750;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-
-            padding: 5px 9px;
-
-            border-radius: 999px;
-
-            background: #fff8e7;
-            color: #946200;
-
-            font-size: 11px;
-            font-weight: 750;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-
-            border-radius: 50%;
-
-            background: #e9a400;
-        }
-
-        .actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .action-form {
-            display: inline;
-            margin: 0;
-        }
-
-        .action-btn {
-            height: 34px;
-
-            padding: 0 12px;
-
-            border-radius: 8px;
-
-            border: 1px solid transparent;
-
-            font-size: 12px;
-            font-weight: 700;
-
-            cursor: pointer;
-
-            transition:
-                background 0.2s ease,
-                transform 0.2s ease;
-        }
-
-        .approve-btn {
-            background: #e8f7ee;
-            border-color: #b8e4c8;
-            color: #16743a;
-        }
-
-        .approve-btn:hover {
-            background: #d9f2e2;
-            transform: translateY(-1px);
-        }
-
-        .reject-btn {
-            background: #fff0ef;
-            border-color: #f2c4c0;
-            color: #b42318;
-        }
-
-        .reject-btn:hover {
-            background: #ffe4e1;
-            transform: translateY(-1px);
-        }
-
-        .empty-state {
-            padding: 70px 25px;
-
-            text-align: center;
-        }
-
-        .empty-icon {
-            width: 68px;
-            height: 68px;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            margin: 0 auto 17px;
-
-            border-radius: 50%;
-
-            background: #eef4ff;
-
-            color: #155eef;
-
-            font-size: 28px;
-            font-weight: 800;
-        }
-
-        .empty-state h3 {
-            color: #101828;
-            font-size: 19px;
-            margin-bottom: 7px;
-        }
-
-        .empty-state p {
-            max-width: 430px;
-            margin: 0 auto;
-
-            color: #667085;
-
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .footer {
-            margin-top: 24px;
-
-            text-align: center;
-
-            color: #98a2b3;
-
-            font-size: 11px;
-        }
-
-        @media (max-width: 760px) {
-
-            .topbar {
-                height: auto;
-                padding: 15px 18px;
-                gap: 15px;
-            }
-
-            .topbar-right {
-                gap: 10px;
-            }
-
-            .user-info {
-                display: none;
-            }
-
-            .page {
-                padding: 25px 15px 40px;
-            }
-
-            .page-header {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-
-            .pending-count {
-                width: 100%;
-            }
-
-            .page-title h1 {
-                font-size: 25px;
-            }
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-<header class="topbar">
-
-    <div class="brand">
-
-        <img
-            src="../assets/images/sportsync-mark.svg"
-            alt="SportSync"
-            class="brand-logo"
-        >
-
-        <div class="brand-text">
-
-            <div class="brand-name">
-                SportSync
-            </div>
-
-            <div class="brand-tagline">
-                Smart Sports Management System
-            </div>
-
-        </div>
-
-    </div>
-
-    <div class="topbar-right">
-
-        <div class="user-info">
-
-            <div class="user-name">
-                <?= e($currentUser['full_name'] ?? 'Administrator') ?>
-            </div>
-
-            <div class="user-role">
-                <?= e(str_replace('_', ' ', $userRole)) ?>
-            </div>
-
-        </div>
-
-        <a
-            href="logout.php"
-            class="logout-btn"
-        >
-            Logout
-        </a>
-
-    </div>
-
-</header>
-
-<main class="page">
-
-    <div class="breadcrumb">
-
-        <a href="dashboard.php">
+    <!-- Breadcrumb -->
+    <div class="student-breadcrumb">
+        <a href="admin-dashboard.php">
             Dashboard
         </a>
 
         <span>›</span>
 
         <span>
-            Pending Students
+            Student Management
         </span>
 
+        <span>›</span>
+
+        <span>
+            Pending Students
+        </span>
     </div>
 
-    <div class="page-header">
+    <!-- Page Header -->
+    <div class="student-management-header">
 
-        <div class="page-title">
+        <div class="student-management-heading">
 
             <h1>
                 Pending Student Registrations
             </h1>
 
             <p>
-                Review and approve student accounts waiting for access
-                to SportSync.
+                Review student registrations waiting for approval.
+                Approve valid accounts to give students access to SportSync,
+                or reject registrations that should not receive access.
             </p>
 
         </div>
 
-        <div class="pending-count">
+        <div class="student-pending-summary">
 
             <strong>
-                <?= count($students) ?>
+                <?= $pendingCount ?>
             </strong>
 
             <span>
-                Pending Registration<?= count($students) === 1 ? '' : 's' ?>
+                Pending Registration<?= $pendingCount === 1 ? '' : 's' ?>
             </span>
 
         </div>
 
     </div>
 
-    <section class="card">
+    <!-- Students Card -->
+    <section class="student-management-card">
 
-        <div class="card-header">
+        <div class="student-management-card-header">
 
-            <div>
+            <div class="student-management-card-title">
 
                 <h2>
                     Students Awaiting Approval
                 </h2>
 
                 <p>
-                    Approve valid registrations or reject applications
-                    that should not receive access.
+                    Review the submitted student information before making
+                    an approval decision.
                 </p>
 
+            </div>
+
+            <div class="student-count-label">
+                <?= $pendingCount ?> Pending
             </div>
 
         </div>
 
         <?php if (empty($students)): ?>
 
-            <div class="empty-state">
+            <!-- Empty State -->
+            <div class="student-empty-state">
 
-                <div class="empty-icon">
+                <div class="student-empty-icon">
                     ✓
                 </div>
 
@@ -701,17 +587,18 @@ function e(?string $value): string
 
                 <p>
                     There are currently no student accounts waiting
-                    for approval. New student registrations will appear
-                    here automatically.
+                    for approval. New student registrations will
+                    automatically appear here.
                 </p>
 
             </div>
 
         <?php else: ?>
 
-            <div class="table-wrapper">
+            <!-- Student Table -->
+            <div class="student-table-wrapper">
 
-                <table>
+                <table class="student-table">
 
                     <thead>
 
@@ -767,59 +654,110 @@ function e(?string $value): string
 
                         <tr>
 
+                            <!-- Student -->
                             <td>
 
-                                <div class="student-name">
-                                    <?= e($student['full_name']) ?>
-                                </div>
+                                <div class="student-primary-info">
 
-                                <div class="student-email">
-                                    <?= e($student['email']) ?>
+                                    <div class="student-name">
+                                        <?= e($student['full_name']) ?>
+                                    </div>
+
+                                    <div class="student-email">
+                                        <?= e($student['email']) ?>
+                                    </div>
+
+                                    <?php if (!empty($student['phone'])): ?>
+
+                                        <div class="student-phone">
+                                            <?= e($student['phone']) ?>
+                                        </div>
+
+                                    <?php endif; ?>
+
                                 </div>
 
                             </td>
 
+                            <!-- Student ID -->
                             <td>
 
-                                <span class="student-id">
-                                    <?= e($student['student_id']) ?>
+                                <?php if (!empty($student['student_id'])): ?>
+
+                                    <span class="student-id">
+                                        <?= e($student['student_id']) ?>
+                                    </span>
+
+                                <?php else: ?>
+
+                                    <span class="student-muted">
+                                        —
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </td>
+
+                            <!-- Department -->
+                            <td>
+                                <span class="student-secondary">
+                                    <?= e($student['department']) ?: '—' ?>
                                 </span>
+                            </td>
+
+                            <!-- Course -->
+                            <td>
+                                <span class="student-secondary">
+                                    <?= e($student['course']) ?: '—' ?>
+                                </span>
+                            </td>
+
+                            <!-- Academic Year -->
+                            <td>
+                                <span class="student-secondary">
+                                    <?= e($student['academic_year']) ?: '—' ?>
+                                </span>
+                            </td>
+
+                            <!-- Semester -->
+                            <td>
+
+                                <?php if ($student['semester'] !== null): ?>
+
+                                    <span class="student-secondary">
+                                        <?= e((string) $student['semester']) ?>
+                                    </span>
+
+                                <?php else: ?>
+
+                                    <span class="student-muted">
+                                        —
+                                    </span>
+
+                                <?php endif; ?>
 
                             </td>
 
+                            <!-- Gender -->
                             <td>
-                                <?= e($student['department']) ?>
+                                <span class="student-secondary">
+                                    <?= e($student['gender']) ?: '—' ?>
+                                </span>
                             </td>
 
+                            <!-- Registered -->
                             <td>
-                                <?= e($student['course']) ?: '—' ?>
+                                <span class="student-secondary">
+                                    <?= e($student['created_at']) ?>
+                                </span>
                             </td>
 
-                            <td>
-                                <?= e($student['academic_year']) ?>
-                            </td>
-
-                            <td>
-                                <?= e(
-                                    $student['semester'] !== null
-                                        ? (string) $student['semester']
-                                        : '—'
-                                ) ?>
-                            </td>
-
-                            <td>
-                                <?= e($student['gender']) ?: '—' ?>
-                            </td>
-
-                            <td>
-                                <?= e($student['created_at']) ?>
-                            </td>
-
+                            <!-- Status -->
                             <td>
 
-                                <span class="status-badge">
+                                <span class="student-status">
 
-                                    <span class="status-dot"></span>
+                                    <span class="student-status-dot"></span>
 
                                     Pending
 
@@ -827,14 +765,16 @@ function e(?string $value): string
 
                             </td>
 
+                            <!-- Actions -->
                             <td>
 
-                                <div class="actions">
+                                <div class="student-actions">
 
+                                    <!-- Approve -->
                                     <form
                                         method="POST"
                                         action="approve-student.php"
-                                        class="action-form"
+                                        class="student-action-form"
                                     >
 
                                         <?= csrfField() ?>
@@ -847,17 +787,20 @@ function e(?string $value): string
 
                                         <button
                                             type="submit"
-                                            class="action-btn approve-btn"
+                                            class="student-action-button student-approve-button"
+                                            data-action="approve"
+                                            data-student-name="<?= e($student['full_name']) ?>"
                                         >
                                             Approve
                                         </button>
 
                                     </form>
 
+                                    <!-- Reject -->
                                     <form
                                         method="POST"
                                         action="reject-student.php"
-                                        class="action-form"
+                                        class="student-action-form"
                                     >
 
                                         <?= csrfField() ?>
@@ -870,7 +813,9 @@ function e(?string $value): string
 
                                         <button
                                             type="submit"
-                                            class="action-btn reject-btn"
+                                            class="student-action-button student-reject-button"
+                                            data-action="reject"
+                                            data-student-name="<?= e($student['full_name']) ?>"
                                         >
                                             Reject
                                         </button>
@@ -895,14 +840,55 @@ function e(?string $value): string
 
     </section>
 
-    <div class="footer">
+</div>
 
-        SportSync · Smart Sports Management System
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
 
-    </div>
+        const actionButtons = document.querySelectorAll(
+            '.student-action-button'
+        );
 
-</main>
+        actionButtons.forEach(function (button) {
 
-</body>
+            button.addEventListener('click', function (event) {
 
-</html>
+                const action = button.dataset.action || '';
+                const studentName = button.dataset.studentName || 'this student';
+
+                let message = '';
+
+                if (action === 'approve') {
+                    message =
+                        'Are you sure you want to approve ' +
+                        studentName +
+                        '? This will allow the student to access SportSync.';
+                }
+
+                if (action === 'reject') {
+                    message =
+                        'Are you sure you want to reject ' +
+                        studentName +
+                        '\'s registration?';
+                }
+
+                if (message && !window.confirm(message)) {
+                    event.preventDefault();
+                    return;
+                }
+
+                button.classList.add('is-processing');
+
+                button.textContent =
+                    action === 'approve'
+                        ? 'Approving...'
+                        : 'Rejecting...';
+
+            });
+
+        });
+
+    });
+</script>
+
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>

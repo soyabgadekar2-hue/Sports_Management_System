@@ -2,12 +2,6 @@
 
 declare(strict_types=1);
 
-/*
-|--------------------------------------------------------------------------
-| SportSync - Admin Profile
-|--------------------------------------------------------------------------
-*/
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 
@@ -20,573 +14,1174 @@ if (($user['role'] ?? '') !== 'ADMIN') {
     exit('Access denied.');
 }
 
-function e(?string $value): string
+$pdo = db();
+
+$admin = null;
+
+try {
+    $statement = $pdo->prepare(
+        'SELECT
+            u.user_id,
+            u.full_name,
+            u.email,
+            u.account_status,
+            u.last_login_at,
+            r.role_name
+         FROM users u
+         INNER JOIN roles r
+             ON r.role_id = u.role_id
+         WHERE u.user_id = :user_id
+         LIMIT 1'
+    );
+
+    $statement->execute([
+        ':user_id' => (int) ($user['user_id'] ?? 0),
+    ]);
+
+    $admin = $statement->fetch(PDO::FETCH_ASSOC);
+} catch (Throwable $exception) {
+    error_log(
+        'Admin profile load failed: ' .
+        $exception->getMessage()
+    );
+}
+
+if (!$admin) {
+    $admin = [
+        'user_id' => $user['user_id'] ?? '',
+        'full_name' => $user['full_name'] ?? 'Administrator',
+        'email' => $user['email'] ?? '',
+        'account_status' => $user['account_status'] ?? 'APPROVED',
+        'last_login_at' => null,
+        'role_name' => 'ADMIN',
+    ];
+}
+
+function e(string|int|null $value): string
 {
     return htmlspecialchars(
-        $value ?? '',
+        (string) ($value ?? ''),
         ENT_QUOTES,
         'UTF-8'
     );
 }
 
-$fullName = $user['full_name'] ?? 'Administrator';
-$email = $user['email'] ?? 'Not available';
-$userId = (string) ($user['user_id'] ?? 'N/A');
-$role = $user['role'] ?? 'ADMIN';
-$status = $user['account_status'] ?? 'APPROVED';
+$fullName = trim(
+    (string) ($admin['full_name'] ?? 'Administrator')
+);
+
+$email = (string) ($admin['email'] ?? '');
+
+$userId = (int) ($admin['user_id'] ?? 0);
+
+$roleName = (string) ($admin['role_name'] ?? 'ADMIN');
+
+$accountStatus = (string) (
+    $admin['account_status'] ?? 'APPROVED'
+);
+
+$initial = strtoupper(
+    substr(
+        preg_replace(
+            '/[^A-Za-z]/',
+            '',
+            $fullName
+        ) ?: 'A',
+        0,
+        1
+    )
+);
+
+$roleLabel = ucwords(
+    strtolower(
+        str_replace(
+            '_',
+            ' ',
+            $roleName
+        )
+    )
+);
+
+$statusLabel = ucwords(
+    strtolower(
+        str_replace(
+            '_',
+            ' ',
+            $accountStatus
+        )
+    )
+);
+
+$lastLogin = $admin['last_login_at'] ?? null;
 
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>My Profile | SportSync</title>
-
-    <meta
-        name="description"
-        content="SportSync Administrator Profile"
-    >
-
-    <link
-        rel="icon"
-        type="image/svg+xml"
-        href="../assets/images/sportsync-mark.svg"
-    >
-
-    <link
-        rel="stylesheet"
-        href="../assets/css/style.css"
-    >
-
-    <style>
-
-        .admin-profile-page {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .profile-header-card {
-            display: flex;
-            align-items: center;
-            gap: 22px;
-            padding: 28px;
-            border: 1px solid #e5eaf2;
-            border-radius: 22px;
-            background: #ffffff;
-            box-shadow: 0 8px 24px rgba(20, 35, 65, 0.06);
-        }
-
-        .profile-avatar {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 88px;
-            height: 88px;
-            flex: 0 0 auto;
-            border-radius: 50%;
-            background:
-                linear-gradient(
-                    135deg,
-                    #0b1f4d,
-                    #2563eb
-                );
-            color: #ffffff;
-            font-size: 32px;
-            font-weight: 800;
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.2);
-        }
-
-        .profile-header-content {
-            min-width: 0;
-        }
-
-        .profile-label {
-            margin: 0 0 7px;
-            color: #2563eb;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .profile-header-content h1 {
-            margin: 0;
-            color: #111827;
-            font-size: 27px;
-            font-weight: 800;
-        }
-
-        .profile-header-content p {
-            margin: 6px 0 0;
-            color: #64748b;
-            font-size: 14px;
-        }
-
-        .profile-grid {
-            display: grid;
-            grid-template-columns:
-                minmax(0, 1.35fr)
-                minmax(300px, 0.8fr);
-            gap: 22px;
-        }
-
-        .profile-card {
-            overflow: hidden;
-            border: 1px solid #e8edf5;
-            border-radius: 20px;
-            background: #ffffff;
-            box-shadow: 0 8px 24px rgba(20, 35, 65, 0.05);
-        }
-
-        .profile-card-header {
-            padding: 21px 24px;
-            border-bottom: 1px solid #edf1f6;
-        }
-
-        .profile-card-header h2 {
-            margin: 0;
-            color: #111827;
-            font-size: 17px;
-            font-weight: 800;
-        }
-
-        .profile-card-header p {
-            margin: 5px 0 0;
-            color: #64748b;
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .profile-details {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0;
-        }
-
-        .profile-detail {
-            padding: 19px 22px;
-            border-bottom: 1px solid #edf1f6;
-        }
-
-        .profile-detail:nth-child(odd) {
-            border-right: 1px solid #edf1f6;
-        }
-
-        .profile-detail-label {
-            margin: 0 0 7px;
-            color: #64748b;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-        }
-
-        .profile-detail-value {
-            margin: 0;
-            color: #111827;
-            font-size: 14px;
-            font-weight: 700;
-            word-break: break-word;
-        }
-
-        .profile-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: #ecfdf3;
-            color: #15803d;
-            font-size: 11px;
-            font-weight: 800;
-        }
-
-        .profile-status::before {
-            content: "";
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: #22c55e;
-        }
-
-        .profile-role {
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: #eef4ff;
-            color: #1d4ed8;
-            font-size: 11px;
-            font-weight: 800;
-        }
-
-        .profile-security {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            padding: 22px;
-        }
-
-        .security-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 13px;
-            padding: 15px;
-            border-radius: 14px;
-            background: #f8fafc;
-        }
-
-        .security-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 38px;
-            height: 38px;
-            flex: 0 0 auto;
-            border-radius: 11px;
-            background: #eef4ff;
-            font-size: 17px;
-        }
-
-        .security-content {
-            min-width: 0;
-        }
-
-        .security-content h3 {
-            margin: 0;
-            color: #111827;
-            font-size: 13px;
-            font-weight: 750;
-        }
-
-        .security-content p {
-            margin: 4px 0 0;
-            color: #64748b;
-            font-size: 11px;
-            line-height: 1.5;
-        }
-
-        .profile-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            padding: 20px 22px;
-            border-top: 1px solid #edf1f6;
-        }
-
-        .profile-action {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 42px;
-            padding: 0 16px;
-            border-radius: 10px;
-            background: #2563eb;
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 750;
-            text-decoration: none;
-        }
-
-        .profile-action:hover {
-            background: #1d4ed8;
-        }
-
-        .profile-action.secondary {
-            background: #f1f5f9;
-            color: #334155;
-        }
-
-        .profile-action.secondary:hover {
-            background: #e2e8f0;
-        }
-
-        @media (max-width: 900px) {
-
-            .profile-grid {
-                grid-template-columns: 1fr;
-            }
-
-        }
-
-        @media (max-width: 650px) {
-
-            .profile-header-card {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 22px;
-            }
-
-            .profile-details {
-                grid-template-columns: 1fr;
-            }
-
-            .profile-detail:nth-child(odd) {
-                border-right: 0;
-            }
-
-        }
-
-    </style>
-
-</head>
-
-<body>
-
 <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
-<div class="page-container">
 
-    <main class="admin-profile-page">
+<style>
 
-        <section class="profile-header-card">
+/* =========================================================
+   ADMIN PROFILE
+   ========================================================= */
 
-            <div class="profile-avatar">
-                <?= e(strtoupper(substr($fullName, 0, 1))); ?>
-            </div>
+.admin-profile-page {
 
-            <div class="profile-header-content">
+    max-width: 1180px;
 
-                <p class="profile-label">
-                    Administrator Profile
-                </p>
+    margin: 0 auto;
 
-                <h1>
-                    <?= e($fullName); ?>
-                </h1>
+}
 
-                <p>
-                    <?= e($email); ?>
-                </p>
 
-            </div>
+/* =========================================================
+   PROFILE HERO
+   ========================================================= */
 
-        </section>
+.admin-profile-hero {
 
-        <section class="profile-grid">
+    display: grid;
 
-            <div class="profile-card">
+    grid-template-columns:
+        minmax(0, 1.5fr)
+        minmax(280px, 0.8fr);
 
-                <div class="profile-card-header">
+    gap: 24px;
 
-                    <h2>
-                        Account Information
+    margin-bottom: 24px;
+
+}
+
+
+/* =========================================================
+   PROFILE CARDS
+   ========================================================= */
+
+.admin-profile-card,
+.admin-profile-security,
+.admin-profile-info {
+
+    background: #ffffff;
+
+    border: 1px solid #e4e7ec;
+
+    border-radius: 18px;
+
+    box-shadow:
+        0 8px 24px rgba(15, 23, 42, 0.06);
+
+}
+
+
+/* =========================================================
+   MAIN PROFILE CARD
+   ========================================================= */
+
+.admin-profile-card {
+
+    padding: 30px;
+
+}
+
+
+/* =========================================================
+   PROFILE IDENTITY
+   ========================================================= */
+
+.admin-profile-identity {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 22px;
+
+}
+
+
+/* =========================================================
+   PROFILE AVATAR
+   ========================================================= */
+
+.admin-profile-avatar {
+
+    width: 104px;
+
+    height: 104px;
+
+    flex: 0 0 104px;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #1d4ed8
+        );
+
+    color: #ffffff;
+
+    font-size: 38px;
+
+    font-weight: 800;
+
+    box-shadow:
+        0 10px 24px rgba(
+            37,
+            99,
+            235,
+            0.25
+        );
+
+}
+
+
+/* =========================================================
+   EYEBROW
+   ========================================================= */
+
+.admin-profile-eyebrow {
+
+    display: inline-block;
+
+    margin-bottom: 7px;
+
+    color: #2563eb;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+
+}
+
+
+/* =========================================================
+   NAME
+   ========================================================= */
+
+.admin-profile-name {
+
+    margin: 0 0 7px;
+
+    color: #101828;
+
+    font-size: 28px;
+
+    line-height: 1.2;
+
+}
+
+
+/* =========================================================
+   EMAIL
+   ========================================================= */
+
+.admin-profile-email {
+
+    margin: 0;
+
+    color: #667085;
+
+    font-size: 15px;
+
+    word-break: break-word;
+
+}
+
+
+/* =========================================================
+   ROLE BADGE
+   ========================================================= */
+
+.admin-profile-role {
+
+    margin-top: 14px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    padding: 7px 11px;
+
+    border-radius: 999px;
+
+    background: #eff6ff;
+
+    color: #1d4ed8;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+}
+
+
+/* =========================================================
+   STATUS CARD
+   ========================================================= */
+
+.admin-profile-status-card {
+
+    padding: 26px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+}
+
+
+/* =========================================================
+   STATUS TITLE
+   ========================================================= */
+
+.admin-profile-status-title {
+
+    margin: 0 0 8px;
+
+    color: #101828;
+
+    font-size: 18px;
+
+}
+
+
+/* =========================================================
+   STATUS TEXT
+   ========================================================= */
+
+.admin-profile-status-text {
+
+    margin: 0 0 18px;
+
+    color: #667085;
+
+    font-size: 14px;
+
+    line-height: 1.6;
+
+}
+
+
+/* =========================================================
+   STATUS BADGE
+   ========================================================= */
+
+.admin-profile-status {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    width: fit-content;
+
+    padding: 9px 13px;
+
+    border-radius: 999px;
+
+    background: #ecfdf3;
+
+    color: #027a48;
+
+    font-size: 13px;
+
+    font-weight: 800;
+
+}
+
+
+/* =========================================================
+   STATUS DOT
+   ========================================================= */
+
+.admin-profile-status-dot {
+
+    width: 8px;
+
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: #12b76a;
+
+}
+
+
+/* =========================================================
+   SECTION TITLE
+   ========================================================= */
+
+.admin-profile-section-title {
+
+    margin: 0 0 5px;
+
+    color: #101828;
+
+    font-size: 20px;
+
+}
+
+
+/* =========================================================
+   SECTION SUBTITLE
+   ========================================================= */
+
+.admin-profile-section-subtitle {
+
+    margin: 0 0 22px;
+
+    color: #667085;
+
+    font-size: 14px;
+
+    line-height: 1.6;
+
+}
+
+
+/* =========================================================
+   ACCOUNT INFORMATION
+   ========================================================= */
+
+.admin-profile-info {
+
+    padding: 26px;
+
+    margin-bottom: 24px;
+
+}
+
+
+/* =========================================================
+   DETAILS GRID
+   ========================================================= */
+
+.admin-profile-details {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            2,
+            minmax(0, 1fr)
+        );
+
+    gap: 16px;
+
+}
+
+
+/* =========================================================
+   DETAIL CARD
+   ========================================================= */
+
+.admin-profile-detail {
+
+    padding: 18px;
+
+    border: 1px solid #eaecf0;
+
+    border-radius: 13px;
+
+    background: #f9fafb;
+
+}
+
+
+/* =========================================================
+   DETAIL LABEL
+   ========================================================= */
+
+.admin-profile-detail-label {
+
+    display: block;
+
+    margin-bottom: 7px;
+
+    color: #667085;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.04em;
+
+}
+
+
+/* =========================================================
+   DETAIL VALUE
+   ========================================================= */
+
+.admin-profile-detail-value {
+
+    display: block;
+
+    color: #101828;
+
+    font-size: 15px;
+
+    font-weight: 700;
+
+    word-break: break-word;
+
+}
+
+
+/* =========================================================
+   SECURITY
+   ========================================================= */
+
+.admin-profile-security {
+
+    padding: 26px;
+
+    margin-bottom: 24px;
+
+}
+
+
+/* =========================================================
+   SECURITY ROW
+   ========================================================= */
+
+.admin-profile-security-row {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 18px 0;
+
+    border-top: 1px solid #eaecf0;
+
+}
+
+
+.admin-profile-security-row:first-of-type {
+
+    border-top: 0;
+
+    padding-top: 0;
+
+}
+
+
+.admin-profile-security-row:last-of-type {
+
+    padding-bottom: 0;
+
+}
+
+
+/* =========================================================
+   SECURITY LABEL
+   ========================================================= */
+
+.admin-profile-security-label {
+
+    margin: 0 0 4px;
+
+    color: #101828;
+
+    font-size: 15px;
+
+    font-weight: 700;
+
+}
+
+
+/* =========================================================
+   SECURITY DESCRIPTION
+   ========================================================= */
+
+.admin-profile-security-description {
+
+    margin: 0;
+
+    color: #667085;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+}
+
+
+/* =========================================================
+   SECURITY VALUE
+   ========================================================= */
+
+.admin-profile-security-value {
+
+    flex: 0 0 auto;
+
+    padding: 7px 11px;
+
+    border-radius: 8px;
+
+    background: #f2f4f7;
+
+    color: #475467;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+}
+
+
+/* =========================================================
+   PHOTO NOTE
+   ========================================================= */
+
+.admin-profile-photo-note {
+
+    margin-top: 20px;
+
+    padding: 14px 16px;
+
+    border-radius: 11px;
+
+    border: 1px solid #dbeafe;
+
+    background: #eff6ff;
+
+    color: #1e40af;
+
+    font-size: 13px;
+
+    line-height: 1.55;
+
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 850px) {
+
+    .admin-profile-hero {
+
+        grid-template-columns: 1fr;
+
+    }
+
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .admin-profile-card,
+    .admin-profile-status-card,
+    .admin-profile-info,
+    .admin-profile-security {
+
+        padding: 20px;
+
+        border-radius: 14px;
+
+    }
+
+
+    .admin-profile-identity {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+    }
+
+
+    .admin-profile-avatar {
+
+        width: 88px;
+
+        height: 88px;
+
+        flex-basis: 88px;
+
+        font-size: 32px;
+
+    }
+
+
+    .admin-profile-name {
+
+        font-size: 23px;
+
+    }
+
+
+    .admin-profile-details {
+
+        grid-template-columns: 1fr;
+
+    }
+
+
+    .admin-profile-security-row {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+    }
+
+}
+
+</style>
+
+
+<div class="admin-profile-page">
+
+
+    <!-- =====================================================
+         PAGE HEADING
+         ===================================================== -->
+
+    <div class="page-heading">
+
+        <div>
+
+            <span class="admin-profile-eyebrow">
+                ACCOUNT
+            </span>
+
+            <h1>
+                Admin Profile
+            </h1>
+
+            <p>
+                View your administrator account information
+                and security status.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- =====================================================
+         PROFILE HERO
+         ===================================================== -->
+
+    <section class="admin-profile-hero">
+
+
+        <!-- =================================================
+             PROFILE
+             ================================================= -->
+
+        <div class="admin-profile-card">
+
+            <div class="admin-profile-identity">
+
+
+                <!-- Avatar -->
+
+                <div
+                    class="admin-profile-avatar"
+                    aria-label="Admin profile avatar"
+                >
+
+                    <?= e($initial) ?>
+
+                </div>
+
+
+                <!-- Identity -->
+
+                <div>
+
+                    <span class="admin-profile-eyebrow">
+                        Administrator Account
+                    </span>
+
+                    <h2 class="admin-profile-name">
+                        <?= e($fullName) ?>
                     </h2>
 
-                    <p>
-                        Your identity and account information in SportSync.
+                    <p class="admin-profile-email">
+                        <?= e($email) ?>
                     </p>
 
-                </div>
+                    <span class="admin-profile-role">
 
-                <div class="profile-details">
+                        🛡️
 
-                    <div class="profile-detail">
+                        <?= e($roleLabel) ?>
 
-                        <p class="profile-detail-label">
-                            Full Name
-                        </p>
-
-                        <p class="profile-detail-value">
-                            <?= e($fullName); ?>
-                        </p>
-
-                    </div>
-
-                    <div class="profile-detail">
-
-                        <p class="profile-detail-label">
-                            Email Address
-                        </p>
-
-                        <p class="profile-detail-value">
-                            <?= e($email); ?>
-                        </p>
-
-                    </div>
-
-                    <div class="profile-detail">
-
-                        <p class="profile-detail-label">
-                            User ID
-                        </p>
-
-                        <p class="profile-detail-value">
-                            <?= e($userId); ?>
-                        </p>
-
-                    </div>
-
-                    <div class="profile-detail">
-
-                        <p class="profile-detail-label">
-                            Account Role
-                        </p>
-
-                        <p class="profile-detail-value">
-
-                            <span class="profile-role">
-                                <?= e($role); ?>
-                            </span>
-
-                        </p>
-
-                    </div>
-
-                    <div class="profile-detail">
-
-                        <p class="profile-detail-label">
-                            Account Status
-                        </p>
-
-                        <p class="profile-detail-value">
-
-                            <span class="profile-status">
-                                <?= e($status); ?>
-                            </span>
-
-                        </p>
-
-                    </div>
-
-                    <div class="profile-detail">
-
-                        <p class="profile-detail-label">
-                            Login Status
-                        </p>
-
-                        <p class="profile-detail-value">
-
-                            <span class="profile-status">
-                                Active
-                            </span>
-
-                        </p>
-
-                    </div>
+                    </span>
 
                 </div>
 
             </div>
 
-            <div class="profile-card">
 
-                <div class="profile-card-header">
+            <!-- Profile Photo Information -->
 
-                    <h2>
-                        Account & Security
-                    </h2>
+            <div class="admin-profile-photo-note">
 
-                    <p>
-                        Important information about keeping your account secure.
-                    </p>
+                <strong>
+                    Profile photo:
+                </strong>
 
-                </div>
-
-                <div class="profile-security">
-
-                    <div class="security-item">
-
-                        <div class="security-icon">
-                            🔐
-                        </div>
-
-                        <div class="security-content">
-
-                            <h3>
-                                Secure Login
-                            </h3>
-
-                            <p>
-                                Your SportSync session is protected using
-                                the application's authentication system.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                    <div class="security-item">
-
-                        <div class="security-icon">
-                            🛡️
-                        </div>
-
-                        <div class="security-content">
-
-                            <h3>
-                                Administrator Access
-                            </h3>
-
-                            <p>
-                                Your administrator permissions allow you to
-                                manage system-level sports operations.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                    <div class="security-item">
-
-                        <div class="security-icon">
-                            👤
-                        </div>
-
-                        <div class="security-content">
-
-                            <h3>
-                                Profile Information
-                            </h3>
-
-                            <p>
-                                Keep your personal account information
-                                accurate and up to date.
-                            </p>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <div class="profile-actions">
-
-                    <a
-                        href="admin-dashboard.php"
-                        class="profile-action secondary"
-                    >
-                        ← Dashboard
-                    </a>
-
-                    <a
-                        href="logout.php"
-                        class="profile-action"
-                    >
-                        Logout
-                    </a>
-
-                </div>
+                Your current profile uses a secure fallback
+                avatar. Profile photo upload will be added
+                later as part of the common profile-photo
+                feature for all SportSync roles.
 
             </div>
 
-        </section>
+        </div>
 
-    </main>
+
+        <!-- =================================================
+             ACCOUNT STATUS
+             ================================================= -->
+
+        <div
+            class="
+                admin-profile-card
+                admin-profile-status-card
+            "
+        >
+
+            <h2 class="admin-profile-status-title">
+                Account Status
+            </h2>
+
+            <p class="admin-profile-status-text">
+
+                This is the current status of your
+                administrator account.
+
+            </p>
+
+            <span class="admin-profile-status">
+
+                <span
+                    class="admin-profile-status-dot"
+                ></span>
+
+                <?= e($statusLabel) ?>
+
+            </span>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         ACCOUNT INFORMATION
+         ===================================================== -->
+
+    <section class="admin-profile-info">
+
+        <h2 class="admin-profile-section-title">
+            Account Information
+        </h2>
+
+        <p class="admin-profile-section-subtitle">
+
+            These details identify your SportSync
+            administrator account.
+
+        </p>
+
+
+        <div class="admin-profile-details">
+
+
+            <!-- User ID -->
+
+            <div class="admin-profile-detail">
+
+                <span
+                    class="admin-profile-detail-label"
+                >
+                    User ID
+                </span>
+
+                <span
+                    class="admin-profile-detail-value"
+                >
+                    #<?= e($userId) ?>
+                </span>
+
+            </div>
+
+
+            <!-- Full Name -->
+
+            <div class="admin-profile-detail">
+
+                <span
+                    class="admin-profile-detail-label"
+                >
+                    Full Name
+                </span>
+
+                <span
+                    class="admin-profile-detail-value"
+                >
+                    <?= e($fullName) ?>
+                </span>
+
+            </div>
+
+
+            <!-- Email -->
+
+            <div class="admin-profile-detail">
+
+                <span
+                    class="admin-profile-detail-label"
+                >
+                    Email Address
+                </span>
+
+                <span
+                    class="admin-profile-detail-value"
+                >
+                    <?= e($email) ?>
+                </span>
+
+            </div>
+
+
+            <!-- Role -->
+
+            <div class="admin-profile-detail">
+
+                <span
+                    class="admin-profile-detail-label"
+                >
+                    Account Role
+                </span>
+
+                <span
+                    class="admin-profile-detail-value"
+                >
+                    <?= e($roleLabel) ?>
+                </span>
+
+            </div>
+
+
+            <!-- Login Status -->
+
+            <div class="admin-profile-detail">
+
+                <span
+                    class="admin-profile-detail-label"
+                >
+                    Login Status
+                </span>
+
+                <span
+                    class="admin-profile-detail-value"
+                >
+                    Active
+                </span>
+
+            </div>
+
+
+            <!-- Last Login -->
+
+            <div class="admin-profile-detail">
+
+                <span
+                    class="admin-profile-detail-label"
+                >
+                    Last Login
+                </span>
+
+                <span
+                    class="admin-profile-detail-value"
+                >
+
+                    <?php if ($lastLogin): ?>
+
+                        <?= e(
+                            date(
+                                'd M Y, h:i A',
+                                strtotime(
+                                    (string) $lastLogin
+                                )
+                            )
+                        ) ?>
+
+                    <?php else: ?>
+
+                        Current session
+
+                    <?php endif; ?>
+
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =====================================================
+         SECURITY
+         ===================================================== -->
+
+    <section class="admin-profile-security">
+
+        <h2 class="admin-profile-section-title">
+            Account & Security
+        </h2>
+
+        <p class="admin-profile-section-subtitle">
+
+            Basic security information for your
+            administrator account.
+
+        </p>
+
+
+        <!-- Password -->
+
+        <div class="admin-profile-security-row">
+
+            <div>
+
+                <p
+                    class="admin-profile-security-label"
+                >
+                    Password
+                </p>
+
+                <p
+                    class="
+                        admin-profile-security-description
+                    "
+                >
+
+                    Your password is stored using the
+                    application's secure password-hashing
+                    system.
+
+                </p>
+
+            </div>
+
+            <span
+                class="admin-profile-security-value"
+            >
+                Protected
+            </span>
+
+        </div>
+
+
+        <!-- Session -->
+
+        <div class="admin-profile-security-row">
+
+            <div>
+
+                <p
+                    class="admin-profile-security-label"
+                >
+                    Session
+                </p>
+
+                <p
+                    class="
+                        admin-profile-security-description
+                    "
+                >
+
+                    Your administrator session is protected
+                    by the SportSync authentication system.
+
+                </p>
+
+            </div>
+
+            <span
+                class="admin-profile-security-value"
+            >
+                Active
+            </span>
+
+        </div>
+
+
+        <!-- Administrator Access -->
+
+        <div class="admin-profile-security-row">
+
+            <div>
+
+                <p
+                    class="admin-profile-security-label"
+                >
+                    Administrator Access
+                </p>
+
+                <p
+                    class="
+                        admin-profile-security-description
+                    "
+                >
+
+                    This account has access to the
+                    administrator area according to its
+                    assigned role.
+
+                </p>
+
+            </div>
+
+            <span
+                class="admin-profile-security-value"
+            >
+                <?= e($roleLabel) ?>
+            </span>
+
+        </div>
+
+    </section>
 
 </div>
 
-<?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
-</body>
-</html>
+<?php require_once __DIR__ . '/../includes/footer.php'; ?>
