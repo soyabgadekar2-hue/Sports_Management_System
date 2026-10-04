@@ -9,32 +9,19 @@ requireAnyRole(['ADMIN', 'SPORTS_COORDINATOR']);
 
 $pdo = db();
 
-$tournamentId = filter_input(
-    INPUT_GET,
-    'tournament_id',
-    FILTER_VALIDATE_INT
-);
+function e(mixed $value): string
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}
+
+$tournamentId = filter_input(INPUT_GET, 'tournament_id', FILTER_VALIDATE_INT);
 
 if (!$tournamentId || $tournamentId <= 0) {
     http_response_code(400);
     exit('Invalid tournament ID.');
 }
 
-function e(mixed $value): string
-{
-    return htmlspecialchars(
-        (string) $value,
-        ENT_QUOTES,
-        'UTF-8'
-    );
-}
-
-/*
-|--------------------------------------------------------------------------
-| Get Tournament
-|--------------------------------------------------------------------------
-*/
-
+/* Tournament information */
 $tournamentStmt = $pdo->prepare("
     SELECT
         t.tournament_id,
@@ -52,18 +39,13 @@ $tournamentStmt = $pdo->prepare("
         s.sport_name,
         v.venue_name
     FROM tournaments t
-    INNER JOIN sports s
-        ON s.sport_id = t.sport_id
-    LEFT JOIN venues v
-        ON v.venue_id = t.venue_id
+    INNER JOIN sports s ON s.sport_id = t.sport_id
+    LEFT JOIN venues v ON v.venue_id = t.venue_id
     WHERE t.tournament_id = :tournament_id
     LIMIT 1
 ");
 
-$tournamentStmt->execute([
-    ':tournament_id' => $tournamentId
-]);
-
+$tournamentStmt->execute([':tournament_id' => $tournamentId]);
 $tournament = $tournamentStmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$tournament) {
@@ -71,58 +53,34 @@ if (!$tournament) {
     exit('Tournament not found.');
 }
 
-/*
-|--------------------------------------------------------------------------
-| Get Registered Teams
-|--------------------------------------------------------------------------
-*/
-
+/* Registered teams */
 $registeredStmt = $pdo->prepare("
     SELECT
-        tt.tournament_team_id,
         tt.team_id,
         tt.participation_status,
         tt.registered_at,
-        tt.remarks,
         tm.team_name,
         tm.team_category,
-        tm.team_status,
         s.sport_name,
-        cp.designation,
         u.full_name AS coach_name
     FROM tournament_teams tt
-    INNER JOIN teams tm
-        ON tm.team_id = tt.team_id
-    INNER JOIN sports s
-        ON s.sport_id = tm.sport_id
-    LEFT JOIN coach_profiles cp
-        ON cp.coach_id = tm.coach_id
-    LEFT JOIN users u
-        ON u.user_id = cp.user_id
+    INNER JOIN teams tm ON tm.team_id = tt.team_id
+    INNER JOIN sports s ON s.sport_id = tm.sport_id
+    LEFT JOIN coach_profiles cp ON cp.coach_id = tm.coach_id
+    LEFT JOIN users u ON u.user_id = cp.user_id
     WHERE tt.tournament_id = :tournament_id
-    ORDER BY
-        tt.participation_status ASC,
-        tm.team_name ASC
+    ORDER BY tt.participation_status ASC, tm.team_name ASC
 ");
 
-$registeredStmt->execute([
-    ':tournament_id' => $tournamentId
-]);
-
+$registeredStmt->execute([':tournament_id' => $tournamentId]);
 $registeredTeams = $registeredStmt->fetchAll(PDO::FETCH_ASSOC);
 
-/*
-|--------------------------------------------------------------------------
-| Get Eligible Teams
-|--------------------------------------------------------------------------
-*/
-
+/* Teams available for registration */
 $eligibleStmt = $pdo->prepare("
     SELECT
         tm.team_id,
         tm.team_name,
-        tm.team_category,
-        tm.team_status
+        tm.team_category
     FROM teams tm
     WHERE tm.sport_id = :sport_id
       AND tm.team_status = 'ACTIVE'
@@ -143,988 +101,732 @@ $eligibleStmt->execute([
 
 $eligibleTeams = $eligibleStmt->fetchAll(PDO::FETCH_ASSOC);
 
-$message = $_GET['message'] ?? '';
-$error = $_GET['error'] ?? '';
+$message = (string) ($_GET['message'] ?? '');
+$error = (string) ($_GET['error'] ?? '');
 
 $tournamentStatus = (string) $tournament['tournament_status'];
 $tournamentFormat = (string) $tournament['tournament_format'];
 $registrationOpen = $tournamentStatus === 'REGISTRATION_OPEN';
 $canSchedule = $tournamentFormat === 'LEAGUE'
-    && count($registeredTeams) >= 2;
+    && count(array_filter(
+        $registeredTeams,
+        static fn(array $team): bool =>
+            $team['participation_status'] === 'ACTIVE'
+    )) >= 2;
 
 $statusClass = match ($tournamentStatus) {
-    'REGISTRATION_OPEN' => 'status-open',
-    'IN_PROGRESS' => 'status-progress',
-    'COMPLETED' => 'status-completed',
-    'CANCELLED' => 'status-cancelled',
-    default => 'status-default'
+    'REGISTRATION_OPEN' => 'open',
+    'IN_PROGRESS' => 'progress',
+    'COMPLETED' => 'completed',
+    'CANCELLED' => 'cancelled',
+    default => 'default'
 };
 
-$activeTeamCount = 0;
+$activeTeamCount = count(array_filter(
+    $registeredTeams,
+    static fn(array $team): bool =>
+        $team['participation_status'] === 'ACTIVE'
+));
 
-foreach ($registeredTeams as $registeredTeam) {
-    if ($registeredTeam['participation_status'] === 'ACTIVE') {
-        $activeTeamCount++;
-    }
-}
-
+$statusLabel = ucwords(strtolower(str_replace('_', ' ', $tournamentStatus)));
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Tournament | <?= e($tournament['tournament_name']) ?></title>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+  <style>
+    :root {
+        --primary: #3155d9;
+        --primary-dark: #2443b8;
+        --primary-light: #edf1ff;
+        --text: #182230;
+        --muted: #687386;
+        --border: #e4e8f0;
+        --background: #f5f7fc;
+        --success: #16804a;
+        --success-bg: #eaf8f0;
+        --danger: #b42318;
+        --danger-bg: #fff0ef;
+        --radius: 16px;
+    }
 
-    <title>
-        Manage Tournament | <?= e($tournament['tournament_name']) ?>
-    </title>
+    * {
+        box-sizing: border-box;
+    }
 
-    <style>
-        :root {
-            --primary: #3155d9;
-            --primary-dark: #2443b8;
-            --primary-light: #edf1ff;
-            --text: #182230;
-            --muted: #687386;
-            --border: #e4e8f0;
-            --surface: #ffffff;
-            --background: #f5f7fc;
-            --success: #16804a;
-            --success-bg: #eaf8f0;
-            --warning: #a85d12;
-            --warning-bg: #fff5e8;
-            --danger: #b42318;
-            --danger-bg: #fff0ef;
-            --shadow: 0 12px 35px rgba(25, 42, 90, 0.07);
-            --radius: 18px;
+    body {
+        margin: 0;
+        color: var(--text);
+        background: var(--background);
+        font-family: Inter, "Segoe UI", Arial, sans-serif;
+        line-height: 1.5;
+    }
+
+    a {
+        color: inherit;
+        text-decoration: none;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        font: inherit;
+    }
+
+    /* Header */
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 14px clamp(18px, 4vw, 50px);
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+    }
+
+    .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        color: #fff;
+        background: linear-gradient(135deg, #4267f5, #2443b8);
+        font-size: 20px;
+        font-weight: 800;
+    }
+
+    .brand-name {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+    .brand-caption {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+    }
+
+    .topbar-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+    }
+
+    .topbar-links a {
+        padding: 8px 11px;
+        border-radius: 9px;
+        color: #536075;
+        font-size: 13px;
+        font-weight: 650;
+    }
+
+    .topbar-links a:hover {
+        background: var(--primary-light);
+        color: var(--primary);
+    }
+
+    .topbar-links .logout-link {
+        color: var(--danger);
+        background: #fff1f0;
+    }
+
+    /* Page */
+    .page-container {
+        width: min(1150px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 28px 0 50px;
+    }
+
+    .breadcrumb {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-bottom: 20px;
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .breadcrumb a {
+        color: var(--primary);
+        font-weight: 650;
+    }
+
+    .page-heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 18px;
+        margin-bottom: 22px;
+    }
+
+    .eyebrow {
+        margin-bottom: 7px;
+        color: var(--primary);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: clamp(26px, 4vw, 34px);
+        line-height: 1.2;
+        letter-spacing: -0.7px;
+    }
+
+    .page-description {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    .heading-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Buttons */
+    .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 40px;
+        padding: 9px 13px;
+        border: 1px solid transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 750;
+        transition: transform .15s ease, background .15s ease;
+    }
+
+    .button:hover {
+        transform: translateY(-1px);
+    }
+
+    .button-primary {
+        color: #fff;
+        background: var(--primary);
+    }
+
+    .button-primary:hover {
+        background: var(--primary-dark);
+    }
+
+    .button-secondary {
+        color: #46546b;
+        background: #fff;
+        border-color: #d8deea;
+    }
+
+    .button-secondary:hover {
+        background: #f7f8fc;
+    }
+
+    /* Notices */
+    .notice {
+        margin-bottom: 16px;
+        padding: 13px 15px;
+        border: 1px solid transparent;
+        border-radius: 12px;
+        font-size: 13px;
+    }
+
+    .notice-success {
+        color: var(--success);
+        background: var(--success-bg);
+        border-color: #ccebd8;
+    }
+
+    .notice-error {
+        color: var(--danger);
+        background: var(--danger-bg);
+        border-color: #f2c9c5;
+    }
+
+    .notice-info {
+        color: #35508d;
+        background: #edf3ff;
+        border-color: #d8e4ff;
+    }
+
+    /* Summary cards */
+    .summary {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .summary-item {
+        min-width: 0;
+        padding: 16px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+    }
+
+    .summary-label {
+        margin: 0 0 5px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+    }
+
+    .summary-value {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+    }
+
+    /* Tournament status */
+    .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 9px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 800;
+    }
+
+    .status::before {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        content: "";
+    }
+
+    .status.open {
+        color: var(--success);
+        background: var(--success-bg);
+    }
+
+    .status.open::before {
+        background: var(--success);
+    }
+
+    .status.progress {
+        color: #3558b8;
+        background: #edf1ff;
+    }
+
+    .status.progress::before {
+        background: #4267f5;
+    }
+
+    .status.completed {
+        color: #586579;
+        background: #eef1f5;
+    }
+
+    .status.completed::before {
+        background: #8994a5;
+    }
+
+    .status.cancelled {
+        color: var(--danger);
+        background: var(--danger-bg);
+    }
+
+    .status.cancelled::before {
+        background: var(--danger);
+    }
+
+    .status.default {
+        color: #8a5b14;
+        background: #fff5e8;
+    }
+
+    .status.default::before {
+        background: #c58a2c;
+    }
+
+    /* Main section alignment */
+    .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 320px;
+        grid-template-areas:
+            "details register"
+            "teams tools";
+        align-items: stretch;
+        gap: 20px;
+    }
+
+    .main-column,
+    .side-column {
+        display: contents;
+    }
+
+    .main-column > .card:first-child {
+        grid-area: details;
+    }
+
+    .main-column > .card:nth-child(2) {
+        grid-area: teams;
+    }
+
+    .side-column > .card:first-child {
+        grid-area: register;
+    }
+
+    .side-column > .card:nth-child(2) {
+        grid-area: tools;
+    }
+
+    /* Cards */
+    .card {
+        width: 100%;
+        min-width: 0;
+        align-self: stretch;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        box-shadow: 0 8px 24px rgba(25, 42, 90, .045);
+    }
+
+    .card-heading {
+        min-height: 78px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 18px 20px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .card-heading h2 {
+        margin: 0;
+        font-size: 16px;
+    }
+
+    .card-heading p {
+        margin: 5px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    /* Tournament details */
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+    }
+
+    .detail-label {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 750;
+        text-transform: uppercase;
+    }
+
+    .detail-value {
+        font-size: 13px;
+        font-weight: 750;
+        overflow-wrap: anywhere;
+    }
+
+    details.extra-details {
+        margin-top: 18px;
+        border-top: 1px solid var(--border);
+        padding-top: 14px;
+    }
+
+    details summary {
+        color: var(--primary);
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 750;
+    }
+
+    .extra-content {
+        padding-top: 14px;
+    }
+
+    .points-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .point {
+        padding: 10px 12px;
+        background: #f7f8fc;
+        border-radius: 10px;
+        font-size: 12px;
+    }
+
+    .point strong {
+        display: block;
+        font-size: 17px;
+    }
+
+    /* Registration form */
+    .field-group {
+        margin-bottom: 15px;
+    }
+
+    .field-group label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 13px;
+        font-weight: 750;
+    }
+
+    .field-control {
+        width: 100%;
+        min-height: 43px;
+        padding: 10px 12px;
+        border: 1px solid #d8deea;
+        border-radius: 9px;
+        background: #fff;
+        outline: none;
+    }
+
+    .field-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(49, 85, 217, .1);
+    }
+
+    textarea.field-control {
+        min-height: 85px;
+        resize: vertical;
+    }
+
+    .field-help {
+        display: block;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 11px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    /* Registered teams */
+    .team-list {
+        display: grid;
+        gap: 10px;
+    }
+
+    .team-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 13px;
+        border: 1px solid var(--border);
+        border-radius: 11px;
+    }
+
+    .team-item:hover {
+        background: #fbfcff;
+        border-color: #cbd5ff;
+    }
+
+    .team-name {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 800;
+    }
+
+    .team-meta {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 11px;
+    }
+
+    .team-status {
+        display: inline-block;
+        margin-top: 6px;
+        padding: 3px 8px;
+        border-radius: 20px;
+        background: #eef1f5;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    .team-status.active {
+        color: var(--success);
+        background: var(--success-bg);
+    }
+
+    .withdraw-button {
+        padding: 7px 10px;
+        border: 1px solid #f2c9c5;
+        border-radius: 8px;
+        color: var(--danger);
+        background: #fff;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 750;
+    }
+
+    .withdraw-button:hover {
+        background: #fff5f4;
+    }
+
+    /* Tournament tools */
+    .action-list {
+        display: grid;
+        gap: 9px;
+    }
+
+    .action-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 750;
+    }
+
+    .action-link:hover {
+        color: var(--primary);
+        background: #f7f8ff;
+        border-color: #cbd5ff;
+    }
+
+    /* Empty state and footer */
+    .empty-state {
+        padding: 20px 10px;
+        color: var(--muted);
+        text-align: center;
+        font-size: 13px;
+    }
+
+    .empty-state strong {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--text);
+    }
+
+    .page-footer {
+        margin-top: 25px;
+        color: #8791a2;
+        text-align: center;
+        font-size: 11px;
+    }
+
+    /* Tablet */
+    @media (max-width: 900px) {
+        .layout {
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-areas:
+                "details"
+                "register"
+                "teams"
+                "tools";
         }
 
-        * {
-            box-sizing: border-box;
+        .summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+    }
 
-        body {
-            margin: 0;
-            background: var(--background);
-            color: var(--text);
-            font-family:
-                Inter,
-                "Segoe UI",
-                Roboto,
-                Arial,
-                sans-serif;
-            line-height: 1.5;
-        }
-
-        a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        button,
-        input,
-        select,
-        textarea {
-            font: inherit;
-        }
-
-        .topbar {
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 20px;
-            padding: 15px clamp(18px, 4vw, 54px);
-            background: rgba(255, 255, 255, 0.95);
-            border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(12px);
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            min-width: 0;
-        }
-
-        .brand-mark {
-            display: grid;
-            place-items: center;
-            width: 43px;
-            height: 43px;
-            flex: 0 0 43px;
-            border-radius: 13px;
-            color: #fff;
-            background: linear-gradient(135deg, #4267f5, #2443b8);
-            box-shadow: 0 7px 16px rgba(49, 85, 217, 0.24);
-            font-size: 21px;
-            font-weight: 800;
-        }
-
-        .brand-name {
-            margin: 0;
-            font-size: 19px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        .brand-caption {
-            margin: 1px 0 0;
-            color: var(--muted);
-            font-size: 12px;
+    /* Mobile */
+    @media (max-width: 600px) {
+        .topbar,
+        .page-heading {
+            align-items: flex-start;
+            flex-direction: column;
         }
 
         .topbar-links {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            flex-wrap: wrap;
-            gap: 7px;
-        }
-
-        .topbar-links a {
-            padding: 9px 12px;
-            border-radius: 10px;
-            color: #536075;
-            font-size: 13px;
-            font-weight: 650;
-            transition: 0.2s ease;
-        }
-
-        .topbar-links a:hover {
-            color: var(--primary);
-            background: var(--primary-light);
-        }
-
-        .topbar-links .logout-link {
-            color: var(--danger);
-            background: #fff1f0;
+            width: 100%;
         }
 
         .page-container {
-            width: min(1200px, calc(100% - 36px));
-            margin: 0 auto;
-            padding: 30px 0 55px;
-        }
-
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 9px;
-            margin-bottom: 22px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .breadcrumb a {
-            color: var(--primary);
-            font-weight: 650;
-        }
-
-        .page-heading {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 22px;
-            margin-bottom: 25px;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            margin-bottom: 9px;
-            color: var(--primary);
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 1.2px;
-            text-transform: uppercase;
-        }
-
-        .eyebrow-dot {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: var(--primary);
-        }
-
-        h1 {
-            margin: 0;
-            font-size: clamp(27px, 4vw, 36px);
-            line-height: 1.15;
-            letter-spacing: -1px;
-        }
-
-        .page-description {
-            max-width: 700px;
-            margin: 10px 0 0;
-            color: var(--muted);
-            font-size: 15px;
+            width: calc(100% - 24px);
+            padding-top: 20px;
         }
 
         .heading-actions {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 9px;
+            width: 100%;
         }
 
-        .button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+        .heading-actions .button {
+            flex: 1;
+        }
+
+        .summary {
             gap: 8px;
-            min-height: 42px;
-            padding: 10px 15px;
-            border: 1px solid transparent;
-            border-radius: 11px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 750;
-            transition:
-                background 0.2s ease,
-                border-color 0.2s ease,
-                box-shadow 0.2s ease,
-                transform 0.2s ease;
         }
 
-        .button:hover {
-            transform: translateY(-1px);
+        .summary-item {
+            padding: 12px;
         }
 
-        .button-primary {
-            color: #fff;
-            background: var(--primary);
-            box-shadow: 0 7px 15px rgba(49, 85, 217, 0.18);
-        }
-
-        .button-primary:hover {
-            background: var(--primary-dark);
-        }
-
-        .button-secondary {
-            color: #46546b;
-            background: #fff;
-            border-color: #d8deea;
-        }
-
-        .button-secondary:hover {
-            background: #f7f8fc;
-            border-color: #b8c2d5;
-        }
-
-        .button-danger {
-            color: var(--danger);
-            background: #fff;
-            border-color: #f2c9c5;
-        }
-
-        .button-danger:hover {
-            background: #fff5f4;
-        }
-
-        .notice {
-            display: flex;
-            align-items: flex-start;
-            gap: 11px;
-            margin-bottom: 18px;
-            padding: 14px 16px;
-            border: 1px solid transparent;
-            border-radius: 13px;
+        .summary-value {
             font-size: 14px;
         }
 
-        .notice-icon {
-            display: grid;
-            place-items: center;
-            width: 23px;
-            height: 23px;
-            flex: 0 0 23px;
-            border-radius: 50%;
-            font-size: 13px;
-            font-weight: 800;
+        .details-grid {
+            grid-template-columns: 1fr;
         }
 
-        .notice-success {
-            color: var(--success);
-            background: var(--success-bg);
-            border-color: #ccebd8;
-        }
-
-        .notice-success .notice-icon {
-            color: #fff;
-            background: var(--success);
-        }
-
-        .notice-error {
-            color: var(--danger);
-            background: var(--danger-bg);
-            border-color: #f2c9c5;
-        }
-
-        .notice-error .notice-icon {
-            color: #fff;
-            background: var(--danger);
-        }
-
-        .notice-info {
-            color: #35508d;
-            background: #edf3ff;
-            border-color: #d8e4ff;
-        }
-
-        .notice-info .notice-icon {
-            color: #fff;
-            background: #4267c9;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 15px;
-            margin-bottom: 23px;
-        }
-
-        .stat-card {
-            display: flex;
-            align-items: center;
-            gap: 13px;
-            min-width: 0;
-            padding: 18px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 15px;
-            box-shadow: 0 5px 18px rgba(25, 42, 90, 0.035);
-        }
-
-        .stat-icon {
-            display: grid;
-            place-items: center;
-            width: 44px;
-            height: 44px;
-            flex: 0 0 44px;
-            border-radius: 13px;
-            color: var(--primary);
-            background: var(--primary-light);
-            font-size: 20px;
-        }
-
-        .stat-label {
-            margin: 0 0 4px;
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 750;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .stat-value {
-            margin: 0;
-            font-size: 17px;
-            font-weight: 800;
-            overflow-wrap: anywhere;
-        }
-
-        .stat-subtext {
-            margin: 3px 0 0;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .content-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) 330px;
-            align-items: start;
-            gap: 22px;
-        }
-
-        .main-column,
-        .side-column {
-            display: grid;
-            gap: 22px;
-            min-width: 0;
-        }
-
-        .card {
-            overflow: hidden;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
+        .card-heading,
+        .card-body {
+            padding: 16px;
         }
 
         .card-heading {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 15px;
-            padding: 22px 23px 19px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .card-heading h2 {
-            margin: 0;
-            font-size: 17px;
-            letter-spacing: -0.3px;
-        }
-
-        .card-heading p {
-            margin: 6px 0 0;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .card-body {
-            padding: 22px 23px;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            border-radius: 30px;
-            font-size: 11px;
-            font-weight: 800;
-            white-space: nowrap;
-        }
-
-        .status-badge::before {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            content: "";
-        }
-
-        .status-open {
-            color: var(--success);
-            background: var(--success-bg);
-        }
-
-        .status-open::before {
-            background: var(--success);
-        }
-
-        .status-progress {
-            color: #3558b8;
-            background: #edf1ff;
-        }
-
-        .status-progress::before {
-            background: #4267f5;
-        }
-
-        .status-completed {
-            color: #586579;
-            background: #eef1f5;
-        }
-
-        .status-completed::before {
-            background: #8994a5;
-        }
-
-        .status-cancelled {
-            color: var(--danger);
-            background: var(--danger-bg);
-        }
-
-        .status-cancelled::before {
-            background: var(--danger);
-        }
-
-        .status-default {
-            color: #8a5b14;
-            background: #fff5e8;
-        }
-
-        .status-default::before {
-            background: #c58a2c;
-        }
-
-        .detail-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px 24px;
-        }
-
-        .detail-item {
-            min-width: 0;
-        }
-
-        .detail-label {
-            display: block;
-            margin-bottom: 6px;
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 750;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
-
-        .detail-value {
-            display: block;
-            color: #253147;
-            font-size: 14px;
-            font-weight: 750;
-            overflow-wrap: anywhere;
-        }
-
-        .detail-subvalue {
-            display: block;
-            margin-top: 4px;
-            color: var(--muted);
-            font-size: 12px;
-            font-weight: 400;
-        }
-
-        .points-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 10px;
-            margin-top: 22px;
-        }
-
-        .points-item {
-            padding: 13px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: #fafbfe;
-        }
-
-        .points-label {
-            display: block;
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 700;
-        }
-
-        .points-value {
-            display: block;
-            margin-top: 4px;
-            font-size: 20px;
-            font-weight: 850;
-        }
-
-        .rules-box {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 12px;
-            background: #f7f8fc;
-        }
-
-        .rules-box h3 {
-            margin: 0 0 7px;
-            font-size: 13px;
-        }
-
-        .rules-box p {
-            margin: 0;
-            color: #586579;
-            font-size: 13px;
-            white-space: pre-line;
-            overflow-wrap: anywhere;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #303c50;
-            font-size: 13px;
-            font-weight: 750;
-        }
-
-        .field-control {
-            display: block;
-            width: 100%;
-            min-height: 45px;
-            padding: 10px 12px;
-            color: var(--text);
-            background: #fff;
-            border: 1px solid #d8deea;
-            border-radius: 10px;
-            outline: none;
-            transition: 0.2s ease;
-        }
-
-        .field-control:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(49, 85, 217, 0.11);
-        }
-
-        textarea.field-control {
-            min-height: 95px;
-            resize: vertical;
-        }
-
-        .field-help {
-            display: block;
-            margin-top: 7px;
-            color: var(--muted);
-            font-size: 12px;
-            line-height: 1.5;
-        }
-
-        .register-form {
-            display: grid;
-            gap: 17px;
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: flex-end;
-        }
-
-        .empty-state {
-            padding: 28px 18px;
-            text-align: center;
-        }
-
-        .empty-icon {
-            display: grid;
-            place-items: center;
-            width: 54px;
-            height: 54px;
-            margin: 0 auto 13px;
-            border-radius: 16px;
-            color: var(--primary);
-            background: var(--primary-light);
-            font-size: 23px;
-        }
-
-        .empty-state h3 {
-            margin: 0;
-            font-size: 15px;
-        }
-
-        .empty-state p {
-            max-width: 360px;
-            margin: 7px auto 0;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .team-list {
-            display: grid;
-            gap: 12px;
+            min-height: auto;
         }
 
         .team-item {
-            display: flex;
             align-items: flex-start;
-            justify-content: space-between;
-            gap: 13px;
-            padding: 14px;
-            border: 1px solid var(--border);
-            border-radius: 13px;
-            transition:
-                border-color 0.2s ease,
-                background 0.2s ease;
+            flex-direction: column;
         }
 
-        .team-item:hover {
-            background: #fbfcff;
-            border-color: #cbd5ff;
-        }
-
-        .team-item-main {
-            display: flex;
-            align-items: flex-start;
-            gap: 11px;
-            min-width: 0;
-        }
-
-        .team-avatar {
-            display: grid;
-            place-items: center;
-            width: 39px;
-            height: 39px;
-            flex: 0 0 39px;
-            border-radius: 12px;
-            color: var(--primary);
-            background: var(--primary-light);
-            font-size: 15px;
-            font-weight: 850;
-        }
-
-        .team-item-name {
-            margin: 0;
-            font-size: 13px;
-            font-weight: 800;
-            overflow-wrap: anywhere;
-        }
-
-        .team-item-meta {
-            margin: 4px 0 0;
-            color: var(--muted);
-            font-size: 11px;
-            line-height: 1.5;
-        }
-
-        .team-item-status {
-            display: inline-block;
-            margin-top: 7px;
-            padding: 4px 8px;
-            border-radius: 20px;
-            color: #526075;
-            background: #eef1f5;
-            font-size: 10px;
-            font-weight: 800;
-        }
-
-        .team-item-status.active {
-            color: var(--success);
-            background: var(--success-bg);
-        }
-
-        .withdraw-form {
-            flex: 0 0 auto;
-        }
-
+        .withdraw-form,
         .withdraw-button {
-            padding: 7px 10px;
-            border: 1px solid #f2c9c5;
-            border-radius: 9px;
-            color: var(--danger);
-            background: #fff;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 750;
-        }
-
-        .withdraw-button:hover {
-            background: #fff5f4;
-        }
-
-        .side-link-list {
-            display: grid;
-            gap: 9px;
-        }
-
-        .side-link {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 13px 14px;
-            border: 1px solid var(--border);
-            border-radius: 11px;
-            color: #47556b;
-            font-size: 12px;
-            font-weight: 750;
-            transition: 0.2s ease;
-        }
-
-        .side-link:hover {
-            color: var(--primary);
-            background: #f7f8ff;
-            border-color: #cbd5ff;
-        }
-
-        .side-link-arrow {
-            color: #9aa4b5;
-            font-size: 17px;
-        }
-
-        .info-callout {
-            padding: 14px;
-            border-radius: 12px;
-            color: #4a5d91;
-            background: #f3f6ff;
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .info-callout strong {
-            display: block;
-            margin-bottom: 5px;
-            color: #2e478e;
-        }
-
-        .table-wrap {
             width: 100%;
-            overflow-x: auto;
         }
+    }
 
-        .teams-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            text-align: left;
+    @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+            transition-duration: .01ms !important;
         }
-
-        .teams-table th {
-            padding: 12px 14px;
-            color: #687386;
-            background: #f8f9fc;
-            border-bottom: 1px solid var(--border);
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            white-space: nowrap;
-        }
-
-        .teams-table td {
-            padding: 14px;
-            border-bottom: 1px solid #edf0f5;
-            vertical-align: middle;
-        }
-
-        .teams-table tbody tr:last-child td {
-            border-bottom: 0;
-        }
-
-        .teams-table tbody tr:hover {
-            background: #fbfcff;
-        }
-
-        .table-team-name {
-            font-weight: 800;
-            color: #27344a;
-        }
-
-        .table-muted {
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 11px;
-        }
-
-        .page-footer {
-            margin-top: 27px;
-            color: #8791a2;
-            text-align: center;
-            font-size: 11px;
-        }
-
-        @media (max-width: 1000px) {
-            .content-grid {
-                grid-template-columns: minmax(0, 1fr);
-            }
-
-            .side-column {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .stats-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-        }
-
-        @media (max-width: 650px) {
-            .topbar {
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 13px;
-                padding: 14px 18px;
-            }
-
-            .topbar-links {
-                justify-content: flex-start;
-                width: 100%;
-            }
-
-            .topbar-links a {
-                padding: 8px 9px;
-                font-size: 12px;
-            }
-
-            .page-container {
-                width: calc(100% - 28px);
-                padding-top: 23px;
-            }
-
-            .page-heading {
-                flex-direction: column;
-            }
-
-            .heading-actions {
-                width: 100%;
-            }
-
-            .heading-actions .button {
-                flex: 1;
-            }
-
-            .stats-grid {
-                gap: 10px;
-            }
-
-            .stat-card {
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 10px;
-                padding: 14px;
-            }
-
-            .stat-value {
-                font-size: 15px;
-            }
-
-            .card-heading,
-            .card-body {
-                padding: 18px;
-            }
-
-            .detail-grid {
-                grid-template-columns: minmax(0, 1fr);
-                gap: 15px;
-            }
-
-            .side-column {
-                grid-template-columns: minmax(0, 1fr);
-            }
-
-            .points-grid {
-                gap: 7px;
-            }
-
-            .points-item {
-                padding: 10px;
-            }
-
-            .points-value {
-                font-size: 18px;
-            }
-
-            .team-item {
-                flex-direction: column;
-            }
-
-            .withdraw-form,
-            .withdraw-button {
-                width: 100%;
-            }
-
-            .teams-table {
-                min-width: 760px;
-            }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *,
-            *::before,
-            *::after {
-                transition-duration: 0.01ms !important;
-                animation-duration: 0.01ms !important;
-            }
-        }
-    </style>
+    }
+  </style>
 </head>
-
 <body>
 
 <header class="topbar">
     <a class="brand" href="dashboard.php" aria-label="SportSync dashboard">
         <div class="brand-mark">S</div>
-
         <div>
             <p class="brand-name">SportSync</p>
             <p class="brand-caption">Sports Management System</p>
@@ -1139,7 +841,6 @@ foreach ($registeredTeams as $registeredTeam) {
 </header>
 
 <main class="page-container">
-
     <div class="breadcrumb">
         <a href="dashboard.php">Dashboard</a>
         <span>/</span>
@@ -1150,24 +851,22 @@ foreach ($registeredTeams as $registeredTeam) {
 
     <section class="page-heading">
         <div>
-            <div class="eyebrow">
-                <span class="eyebrow-dot"></span>
-                Tournament control center
-            </div>
-
-            <h1>Manage Tournament</h1>
-
+            <div class="eyebrow">Tournament management</div>
+            <h1><?= e($tournament['tournament_name']) ?></h1>
             <p class="page-description">
-                Manage tournament information, register teams, and access
-                scheduling, match results, and standings.
+                Register teams and open tournament tools from one place.
             </p>
         </div>
 
         <div class="heading-actions">
-            <a
-                class="button button-secondary"
-                href="admin-tournaments.php"
-            >
+            <?php if ($canSchedule): ?>
+                <a class="button button-primary"
+                   href="schedule-match.php?tournament_id=<?= (int) $tournamentId ?>">
+                    Schedule Match
+                </a>
+            <?php endif; ?>
+
+            <a class="button button-secondary" href="admin-tournaments.php">
                 ← All Tournaments
             </a>
         </div>
@@ -1175,292 +874,145 @@ foreach ($registeredTeams as $registeredTeam) {
 
     <?php if ($message === 'team_registered'): ?>
         <div class="notice notice-success" role="status">
-            <span class="notice-icon">✓</span>
-            <div>
-                <strong>Team registered successfully.</strong>
-                <div>The team has been added to this tournament.</div>
-            </div>
+            Team registered successfully.
         </div>
     <?php elseif ($message === 'team_withdrawn'): ?>
         <div class="notice notice-success" role="status">
-            <span class="notice-icon">✓</span>
-            <div>
-                <strong>Team withdrawn successfully.</strong>
-                <div>The team has been withdrawn from this tournament.</div>
-            </div>
+            Team withdrawn successfully.
         </div>
     <?php elseif ($message === 'match_scheduled'): ?>
         <div class="notice notice-success" role="status">
-            <span class="notice-icon">✓</span>
-            <div>
-                <strong>Match scheduled successfully.</strong>
-                <div>The match has been added to the tournament.</div>
-            </div>
+            Match scheduled successfully.
         </div>
     <?php endif; ?>
 
     <?php if ($error !== ''): ?>
         <div class="notice notice-error" role="alert">
-            <span class="notice-icon">!</span>
-            <div>
-                <strong>Action could not be completed.</strong>
-                <div><?= e($error) ?></div>
-            </div>
+            <?= e($error) ?>
         </div>
     <?php endif; ?>
 
-    <section class="stats-grid" aria-label="Tournament summary">
-
-        <article class="stat-card">
-            <div class="stat-icon" aria-hidden="true">🏆</div>
-            <div>
-                <p class="stat-label">Tournament</p>
-                <p class="stat-value"><?= e($tournament['tournament_name']) ?></p>
-                <p class="stat-subtext">
-                    ID #<?= (int) $tournament['tournament_id'] ?>
-                </p>
-            </div>
+    <section class="summary" aria-label="Tournament summary">
+        <article class="summary-item">
+            <p class="summary-label">Sport</p>
+            <p class="summary-value"><?= e($tournament['sport_name']) ?></p>
         </article>
 
-        <article class="stat-card">
-            <div class="stat-icon" aria-hidden="true">🏅</div>
-            <div>
-                <p class="stat-label">Sport</p>
-                <p class="stat-value"><?= e($tournament['sport_name']) ?></p>
-                <p class="stat-subtext"><?= e($tournamentFormat) ?> format</p>
-            </div>
+        <article class="summary-item">
+            <p class="summary-label">Teams registered</p>
+            <p class="summary-value"><?= $activeTeamCount ?></p>
         </article>
 
-        <article class="stat-card">
-            <div class="stat-icon" aria-hidden="true">👥</div>
-            <div>
-                <p class="stat-label">Registered teams</p>
-                <p class="stat-value"><?= $activeTeamCount ?></p>
-                <p class="stat-subtext">Active registrations</p>
-            </div>
+        <article class="summary-item">
+            <p class="summary-label">Format</p>
+            <p class="summary-value"><?= e($tournamentFormat) ?></p>
         </article>
 
-        <article class="stat-card">
-            <div class="stat-icon" aria-hidden="true">📌</div>
-            <div>
-                <p class="stat-label">Tournament status</p>
-                <p class="stat-value">
-                    <span class="status-badge <?= e($statusClass) ?>">
-                        <?= e(str_replace('_', ' ', $tournamentStatus)) ?>
-                    </span>
-                </p>
-                <p class="stat-subtext">Current status</p>
-            </div>
+        <article class="summary-item">
+            <p class="summary-label">Status</p>
+            <p class="summary-value">
+                <span class="status <?= e($statusClass) ?>">
+                    <?= e($statusLabel) ?>
+                </span>
+            </p>
         </article>
-
     </section>
 
-    <div class="content-grid">
-
+    <div class="layout">
         <div class="main-column">
 
             <section class="card">
                 <div class="card-heading">
-                    <div>
-                        <h2>Tournament information</h2>
-                        <p>Overview of the tournament settings and schedule.</p>
-                    </div>
-
-                    <span class="status-badge <?= e($statusClass) ?>">
-                        <?= e(str_replace('_', ' ', $tournamentStatus)) ?>
-                    </span>
+                    <h2>Tournament details</h2>
+                    <p>Key information and dates.</p>
                 </div>
 
                 <div class="card-body">
-
-                    <div class="detail-grid">
-
-                        <div class="detail-item">
+                    <div class="details-grid">
+                        <div>
                             <span class="detail-label">Tournament name</span>
-                            <span class="detail-value">
-                                <?= e($tournament['tournament_name']) ?>
-                            </span>
+                            <span class="detail-value"><?= e($tournament['tournament_name']) ?></span>
                         </div>
 
-                        <div class="detail-item">
-                            <span class="detail-label">Sport</span>
-                            <span class="detail-value">
-                                <?= e($tournament['sport_name']) ?>
-                            </span>
-                        </div>
-
-                        <div class="detail-item">
+                        <div>
                             <span class="detail-label">Venue</span>
-                            <span class="detail-value">
-                                <?= e($tournament['venue_name'] ?? 'Not assigned') ?>
-                            </span>
+                            <span class="detail-value"><?= e($tournament['venue_name'] ?? 'Not assigned') ?></span>
                         </div>
 
-                        <div class="detail-item">
-                            <span class="detail-label">Tournament format</span>
-                            <span class="detail-value">
-                                <?= e($tournamentFormat) ?>
-                            </span>
-                        </div>
-
-                        <div class="detail-item">
+                        <div>
                             <span class="detail-label">Start date</span>
-                            <span class="detail-value">
-                                <?= e($tournament['start_date']) ?>
-                            </span>
+                            <span class="detail-value"><?= e($tournament['start_date']) ?></span>
                         </div>
 
-                        <div class="detail-item">
+                        <div>
                             <span class="detail-label">End date</span>
-                            <span class="detail-value">
-                                <?= e($tournament['end_date']) ?>
-                            </span>
-                        </div>
-
-                    </div>
-
-                    <div class="points-grid">
-                        <div class="points-item">
-                            <span class="points-label">Points for win</span>
-                            <span class="points-value">
-                                <?= e($tournament['points_win']) ?>
-                            </span>
-                        </div>
-
-                        <div class="points-item">
-                            <span class="points-label">Points for draw</span>
-                            <span class="points-value">
-                                <?= e($tournament['points_draw']) ?>
-                            </span>
-                        </div>
-
-                        <div class="points-item">
-                            <span class="points-label">Points for loss</span>
-                            <span class="points-value">
-                                <?= e($tournament['points_loss']) ?>
-                            </span>
+                            <span class="detail-value"><?= e($tournament['end_date']) ?></span>
                         </div>
                     </div>
 
-                    <?php if (!empty($tournament['rules_information'])): ?>
-                        <div class="rules-box">
-                            <h3>Tournament rules</h3>
-                            <p><?= e($tournament['rules_information']) ?></p>
-                        </div>
-                    <?php endif; ?>
+                    <details class="extra-details">
+                        <summary>View points and rules</summary>
+                        <div class="extra-content">
+                            <div class="points-grid">
+                                <div class="point">
+                                    Win
+                                    <strong><?= e($tournament['points_win']) ?></strong>
+                                </div>
+                                <div class="point">
+                                    Draw
+                                    <strong><?= e($tournament['points_draw']) ?></strong>
+                                </div>
+                                <div class="point">
+                                    Loss
+                                    <strong><?= e($tournament['points_loss']) ?></strong>
+                                </div>
+                            </div>
 
+                            <?php if (!empty($tournament['rules_information'])): ?>
+                                <p><?= nl2br(e($tournament['rules_information'])) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </details>
                 </div>
             </section>
 
-            <?php if ($canSchedule): ?>
-                <section class="card">
-                    <div class="card-heading">
-                        <div>
-                            <h2>Match management</h2>
-                            <p>
-                                Schedule matches and manage tournament results.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="side-link-list">
-                            <a
-                                class="side-link"
-                                href="schedule-match.php?tournament_id=<?= (int) $tournamentId ?>"
-                            >
-                                <span>Schedule a match</span>
-                                <span class="side-link-arrow">→</span>
-                            </a>
-
-                            <a
-                                class="side-link"
-                                href="match-results.php?tournament_id=<?= (int) $tournamentId ?>"
-                            >
-                                <span>View match results</span>
-                                <span class="side-link-arrow">→</span>
-                            </a>
-
-                            <a
-                                class="side-link"
-                                href="tournament-standings.php?tournament_id=<?= (int) $tournamentId ?>"
-                            >
-                                <span>View tournament standings</span>
-                                <span class="side-link-arrow">→</span>
-                            </a>
-                        </div>
-                    </div>
-                </section>
-            <?php endif; ?>
-
             <section class="card">
                 <div class="card-heading">
-                    <div>
-                        <h2>Registered teams</h2>
-                        <p>
-                            <?= count($registeredTeams) ?>
-                            team registration record(s) for this tournament.
-                        </p>
-                    </div>
+                    <h2>Registered teams</h2>
+                    <p>
+                        <?= $activeTeamCount ?> active team(s) in this tournament.
+                    </p>
                 </div>
 
                 <div class="card-body">
-
                     <?php if (!$registeredTeams): ?>
                         <div class="empty-state">
-                            <div class="empty-icon" aria-hidden="true">👥</div>
-                            <h3>No teams registered yet</h3>
-                            <p>
-                                Register eligible teams to start preparing
-                                this tournament.
-                            </p>
+                            <strong>No teams registered yet</strong>
+                            Register an eligible team using the form.
                         </div>
                     <?php else: ?>
-
                         <div class="team-list">
-
                             <?php foreach ($registeredTeams as $team): ?>
                                 <?php
                                 $participationStatus = (string) $team['participation_status'];
-                                $isActiveRegistration = $participationStatus === 'ACTIVE';
+                                $isActive = $participationStatus === 'ACTIVE';
                                 ?>
 
                                 <article class="team-item">
-
-                                    <div class="team-item-main">
-                                        <div class="team-avatar" aria-hidden="true">
-                                            <?= e(mb_strtoupper(mb_substr((string) $team['team_name'], 0, 1))) ?>
-                                        </div>
-
-                                        <div>
-                                            <p class="team-item-name">
-                                                <?= e($team['team_name']) ?>
-                                            </p>
-
-                                            <p class="team-item-meta">
-                                                <?= e($team['sport_name']) ?>
-                                                ·
-                                                <?= e($team['team_category']) ?>
-                                                <br>
-
-                                                Coach:
-                                                <?= e($team['coach_name'] ?? 'Not assigned') ?>
-                                                <br>
-
-                                                Registered:
-                                                <?= e($team['registered_at']) ?>
-                                            </p>
-
-                                            <span class="team-item-status <?= $isActiveRegistration ? 'active' : '' ?>">
-                                                <?= e(str_replace('_', ' ', $participationStatus)) ?>
-                                            </span>
-                                        </div>
+                                    <div>
+                                        <p class="team-name"><?= e($team['team_name']) ?></p>
+                                        <p class="team-meta">
+                                            <?= e($team['sport_name']) ?> ·
+                                            <?= e($team['team_category']) ?><br>
+                                            Coach: <?= e($team['coach_name'] ?? 'Not assigned') ?><br>
+                                            Registered: <?= e($team['registered_at']) ?>
+                                        </p>
+                                        <span class="team-status <?= $isActive ? 'active' : '' ?>">
+                                            <?= e(ucwords(strtolower(str_replace('_', ' ', $participationStatus)))) ?>
+                                        </span>
                                     </div>
 
-                                    <?php if (
-                                        $isActiveRegistration
-                                        && $registrationOpen
-                                    ): ?>
+                                    <?php if ($isActive && $registrationOpen): ?>
                                         <form
                                             class="withdraw-form"
                                             method="POST"
@@ -1469,209 +1021,121 @@ foreach ($registeredTeams as $registeredTeam) {
                                         >
                                             <?= csrfField() ?>
 
-                                            <input
-                                                type="hidden"
-                                                name="tournament_id"
-                                                value="<?= (int) $tournamentId ?>"
-                                            >
+                                            <input type="hidden" name="tournament_id"
+                                                   value="<?= (int) $tournamentId ?>">
+                                            <input type="hidden" name="team_id"
+                                                   value="<?= (int) $team['team_id'] ?>">
 
-                                            <input
-                                                type="hidden"
-                                                name="team_id"
-                                                value="<?= (int) $team['team_id'] ?>"
-                                            >
-
-                                            <button
-                                                class="withdraw-button"
-                                                type="submit"
-                                            >
+                                            <button class="withdraw-button" type="submit">
                                                 Withdraw
                                             </button>
                                         </form>
                                     <?php endif; ?>
-
                                 </article>
                             <?php endforeach; ?>
-
                         </div>
-
                     <?php endif; ?>
-
                 </div>
             </section>
-
         </div>
 
         <aside class="side-column">
-
             <section class="card">
                 <div class="card-heading">
-                    <div>
-                        <h2>Register a team</h2>
-                        <p>Add an eligible team to this tournament.</p>
-                    </div>
+                    <h2>Register a team</h2>
+                    <p>Choose an active team from this sport.</p>
                 </div>
 
                 <div class="card-body">
-
                     <?php if (!$registrationOpen): ?>
                         <div class="notice notice-info">
-                            <span class="notice-icon">i</span>
-                            <div>
-                                <strong>Registration is closed</strong>
-                                Team registration is currently unavailable
-                                for this tournament.
-                            </div>
+                            Registration is closed for this tournament.
                         </div>
-
                     <?php elseif (!$eligibleTeams): ?>
                         <div class="empty-state">
-                            <div class="empty-icon" aria-hidden="true">✓</div>
-                            <h3>No eligible teams</h3>
-                            <p>
-                                There are no active teams available for this
-                                tournament's sport, or all eligible teams
-                                are already registered.
-                            </p>
+                            <strong>No eligible teams</strong>
+                            All active teams may already be registered.
                         </div>
-
                     <?php else: ?>
-                        <form
-                            class="register-form"
-                            method="POST"
-                            action="register-tournament-team.php"
-                        >
+                        <form method="POST" action="register-tournament-team.php">
                             <?= csrfField() ?>
 
-                            <input
-                                type="hidden"
-                                name="tournament_id"
-                                value="<?= (int) $tournamentId ?>"
-                            >
+                            <input type="hidden" name="tournament_id"
+                                   value="<?= (int) $tournamentId ?>">
 
-                            <div class="form-group">
+                            <div class="field-group">
                                 <label for="team_id">Select team</label>
-
-                                <select
-                                    class="field-control"
-                                    name="team_id"
-                                    id="team_id"
-                                    required
-                                >
+                                <select class="field-control" name="team_id" id="team_id" required>
                                     <option value="">Choose a team</option>
-
                                     <?php foreach ($eligibleTeams as $team): ?>
                                         <option value="<?= (int) $team['team_id'] ?>">
-                                            <?= e($team['team_name']) ?>
-                                            — <?= e($team['team_category']) ?>
+                                            <?= e($team['team_name']) ?> — <?= e($team['team_category']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 </select>
-
                                 <small class="field-help">
-                                    Only active teams from this tournament's
-                                    sport are listed.
+                                    Only active teams from this sport are listed.
                                 </small>
                             </div>
 
-                            <div class="form-group">
+                            <div class="field-group">
                                 <label for="remarks">Remarks (optional)</label>
-
                                 <textarea
                                     class="field-control"
                                     name="remarks"
                                     id="remarks"
-                                    rows="4"
+                                    rows="3"
                                     maxlength="500"
-                                    placeholder="Add any notes about this registration"
+                                    placeholder="Add a note if needed"
                                 ></textarea>
                             </div>
 
                             <div class="form-actions">
-                                <button
-                                    class="button button-primary"
-                                    type="submit"
-                                >
+                                <button class="button button-primary" type="submit">
                                     + Register Team
                                 </button>
                             </div>
                         </form>
                     <?php endif; ?>
-
                 </div>
             </section>
 
             <section class="card">
                 <div class="card-heading">
-                    <div>
-                        <h2>Quick actions</h2>
-                        <p>Open tournament tools.</p>
-                    </div>
+                    <h2>Tournament tools</h2>
+                    <p>Open these tools when needed.</p>
                 </div>
 
                 <div class="card-body">
-                    <div class="side-link-list">
-
+                    <div class="action-list">
                         <?php if ($canSchedule): ?>
-                            <a
-                                class="side-link"
-                                href="schedule-match.php?tournament_id=<?= (int) $tournamentId ?>"
-                            >
-                                <span>Schedule match</span>
-                                <span class="side-link-arrow">→</span>
+                            <a class="action-link"
+                               href="schedule-match.php?tournament_id=<?= (int) $tournamentId ?>">
+                                Schedule match <span>→</span>
                             </a>
-
-                            <a
-                                class="side-link"
-                                href="match-results.php?tournament_id=<?= (int) $tournamentId ?>"
-                            >
-                                <span>Match results</span>
-                                <span class="side-link-arrow">→</span>
+                            <a class="action-link"
+                               href="match-results.php?tournament_id=<?= (int) $tournamentId ?>">
+                                Match results <span>→</span>
                             </a>
-
-                            <a
-                                class="side-link"
-                                href="tournament-standings.php?tournament_id=<?= (int) $tournamentId ?>"
-                            >
-                                <span>Tournament standings</span>
-                                <span class="side-link-arrow">→</span>
+                            <a class="action-link"
+                               href="tournament-standings.php?tournament_id=<?= (int) $tournamentId ?>">
+                                Tournament standings <span>→</span>
                             </a>
                         <?php else: ?>
-                            <div class="info-callout">
-                                <strong>Match scheduling</strong>
-                                Match scheduling is available for league
-                                tournaments after at least two teams are
-                                registered.
+                            <div class="notice notice-info">
+                                Match scheduling is available for league tournaments
+                                after at least two active teams are registered.
                             </div>
                         <?php endif; ?>
-
-                        <a
-                            class="side-link"
-                            href="admin-tournaments.php"
-                        >
-                            <span>Back to tournaments</span>
-                            <span class="side-link-arrow">→</span>
-                        </a>
-
                     </div>
                 </div>
             </section>
-
-            <div class="info-callout">
-                <strong>Registration reminder</strong>
-                Only active teams belonging to the same sport are shown
-                for registration. Teams can be withdrawn while tournament
-                registration remains open.
-            </div>
-
         </aside>
-
     </div>
 
     <footer class="page-footer">
         SportSync · Sports Management System
     </footer>
-
 </main>
 
 </body>

@@ -1,15 +1,14 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/session.php';
 require_once __DIR__ . '/../includes/csrf.php';
 
 if (isset($_SESSION['user_id'])) {
-
     $role = $_SESSION['role_name'] ?? '';
 
     switch ($role) {
-
         case 'ADMIN':
             header('Location: admin-dashboard.php');
             exit;
@@ -32,6 +31,7 @@ $error = $_SESSION['login_error'] ?? '';
 unset($_SESSION['login_error']);
 
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -39,9 +39,13 @@ unset($_SESSION['login_error']);
 
     <meta charset="UTF-8">
 
+    <!--
+        MOBILE VIEWPORT
+        Prevents the page from being pinch-zoomed.
+    -->
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no"
     >
 
     <title>Login | SportSync</title>
@@ -63,17 +67,39 @@ unset($_SESSION['login_error']);
            RESET
         ===================================================== */
 
-        * {
+        *,
+        *::before,
+        *::after {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
+
+        /* =====================================================
+           MOBILE ZOOM / TEXT SIZE PROTECTION
+        ===================================================== */
+
+        html {
+            width: 100%;
+            min-width: 0;
+
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+
+            /*
+                Prevent browser gesture zoom where supported.
+            */
+            touch-action: pan-x pan-y;
+        }
+
 
         html,
         body {
             width: 100%;
             min-height: 100%;
         }
+
 
         body {
             font-family:
@@ -85,23 +111,42 @@ unset($_SESSION['login_error']);
 
             color: #172033;
             background: #f5f7fb;
+
+            width: 100%;
+            max-width: 100%;
+
+            min-width: 0;
+
             overflow-x: hidden;
+
+            /*
+                Allow normal scrolling/touch movement,
+                but prevent pinch zoom on the page.
+            */
+            touch-action: pan-x pan-y;
         }
+
 
         /* =====================================================
            PAGE
         ===================================================== */
 
         .auth-page {
+            width: 100%;
+            max-width: 100%;
+
             min-height: 100vh;
+            min-height: 100dvh;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
 
             padding: 24px;
 
             position: relative;
+
             overflow: hidden;
 
             background:
@@ -116,7 +161,10 @@ unset($_SESSION['login_error']);
                     transparent 30%
                 ),
                 #f5f7fb;
+
+            touch-action: pan-x pan-y;
         }
+
 
         /* =====================================================
            ANIMATED BACKGROUND
@@ -124,11 +172,16 @@ unset($_SESSION['login_error']);
 
         .background-circle {
             position: absolute;
+
             border-radius: 50%;
+
             pointer-events: none;
+
             opacity: 0.35;
+
             filter: blur(1px);
         }
+
 
         .background-circle.one {
             width: 220px;
@@ -143,6 +196,7 @@ unset($_SESSION['login_error']);
                 floatCircleOne 9s ease-in-out infinite;
         }
 
+
         .background-circle.two {
             width: 280px;
             height: 280px;
@@ -155,6 +209,7 @@ unset($_SESSION['login_error']);
             animation:
                 floatCircleTwo 11s ease-in-out infinite;
         }
+
 
         .background-circle.three {
             width: 100px;
@@ -169,6 +224,7 @@ unset($_SESSION['login_error']);
                 floatCircleThree 7s ease-in-out infinite;
         }
 
+
         @keyframes floatCircleOne {
 
             0%,
@@ -180,6 +236,7 @@ unset($_SESSION['login_error']);
                 transform: translate(25px, 20px);
             }
         }
+
 
         @keyframes floatCircleTwo {
 
@@ -193,6 +250,7 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         @keyframes floatCircleThree {
 
             0%,
@@ -205,16 +263,20 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         /* =====================================================
            MAIN CONTAINER
         ===================================================== */
 
         .auth-container {
             position: relative;
+
             z-index: 5;
 
             width: 100%;
             max-width: 1050px;
+
+            min-width: 0;
 
             display: grid;
 
@@ -227,7 +289,8 @@ unset($_SESSION['login_error']);
 
             overflow: hidden;
 
-            border: 1px solid rgba(226, 232, 240, 0.9);
+            border:
+                1px solid rgba(226, 232, 240, 0.9);
 
             box-shadow:
                 0 25px 70px rgba(15, 23, 42, 0.12),
@@ -238,6 +301,7 @@ unset($_SESSION['login_error']);
                 cubic-bezier(0.22, 1, 0.36, 1)
                 both;
         }
+
 
         @keyframes containerEnter {
 
@@ -258,6 +322,7 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         /* =====================================================
            BRAND PANEL
         ===================================================== */
@@ -270,7 +335,9 @@ unset($_SESSION['login_error']);
             padding: 30px;
 
             display: flex;
+
             flex-direction: column;
+
             justify-content: center;
 
             overflow: hidden;
@@ -285,6 +352,7 @@ unset($_SESSION['login_error']);
                     #2563eb 100%
                 );
         }
+
 
         .auth-brand-panel::before {
             content: "";
@@ -306,6 +374,7 @@ unset($_SESSION['login_error']);
                 brandOrb 10s ease-in-out infinite;
         }
 
+
         .auth-brand-panel::after {
             content: "";
 
@@ -326,6 +395,7 @@ unset($_SESSION['login_error']);
                 brandOrbTwo 12s ease-in-out infinite;
         }
 
+
         @keyframes brandOrb {
 
             0%,
@@ -341,6 +411,7 @@ unset($_SESSION['login_error']);
                     scale(1.08);
             }
         }
+
 
         @keyframes brandOrbTwo {
 
@@ -358,10 +429,12 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         .brand-content {
             position: relative;
             z-index: 2;
         }
+
 
         /* =====================================================
            LOGO
@@ -386,6 +459,7 @@ unset($_SESSION['login_error']);
                 logoFloat 4s ease-in-out infinite;
         }
 
+
         @keyframes logoFloat {
 
             0%,
@@ -402,8 +476,10 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         .brand-title {
             font-size: 42px;
+
             line-height: 1.05;
 
             font-weight: 800;
@@ -418,8 +494,10 @@ unset($_SESSION['login_error']);
                 both;
         }
 
+
         .brand-tagline {
             font-size: 16px;
+
             line-height: 1.6;
 
             color:
@@ -434,6 +512,7 @@ unset($_SESSION['login_error']);
                 0.25s
                 both;
         }
+
 
         @keyframes textReveal {
 
@@ -452,18 +531,23 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         /* =====================================================
            FEATURES
         ===================================================== */
 
         .brand-features {
             display: flex;
+
             flex-direction: column;
+
             gap: 12px;
         }
 
+
         .brand-feature {
             display: flex;
+
             align-items: center;
 
             gap: 10px;
@@ -478,17 +562,21 @@ unset($_SESSION['login_error']);
                 both;
         }
 
+
         .brand-feature:nth-child(1) {
             animation-delay: 0.35s;
         }
+
 
         .brand-feature:nth-child(2) {
             animation-delay: 0.45s;
         }
 
+
         .brand-feature:nth-child(3) {
             animation-delay: 0.55s;
         }
+
 
         @keyframes featureEnter {
 
@@ -507,11 +595,13 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         .feature-icon {
             width: 28px;
             height: 28px;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
 
@@ -527,6 +617,7 @@ unset($_SESSION['login_error']);
                 background 0.25s ease;
         }
 
+
         .brand-feature:hover .feature-icon {
             transform:
                 rotate(-8deg)
@@ -536,6 +627,7 @@ unset($_SESSION['login_error']);
                 rgba(255, 255, 255, 0.20);
         }
 
+
         /* =====================================================
            FORM PANEL
         ===================================================== */
@@ -544,11 +636,18 @@ unset($_SESSION['login_error']);
             padding: 30px 42px;
 
             display: flex;
+
             flex-direction: column;
+
             justify-content: center;
 
             background: #ffffff;
+
+            min-width: 0;
+
+            overflow-wrap: anywhere;
         }
+
 
         .form-header {
             margin-bottom: 20px;
@@ -558,6 +657,7 @@ unset($_SESSION['login_error']);
                 0.15s
                 both;
         }
+
 
         @keyframes formEnter {
 
@@ -576,8 +676,10 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         .form-header h1 {
             font-size: 30px;
+
             line-height: 1.2;
 
             font-weight: 750;
@@ -587,12 +689,15 @@ unset($_SESSION['login_error']);
             margin-bottom: 7px;
         }
 
+
         .form-header p {
             font-size: 14px;
+
             line-height: 1.5;
 
             color: #64748b;
         }
+
 
         /* =====================================================
            ERROR
@@ -612,11 +717,13 @@ unset($_SESSION['login_error']);
             color: #b91c1c;
 
             font-size: 13px;
+
             line-height: 1.45;
 
             animation:
                 errorShake 0.45s ease both;
         }
+
 
         @keyframes errorShake {
 
@@ -634,6 +741,7 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         /* =====================================================
            ROLE SECTION
         ===================================================== */
@@ -647,25 +755,29 @@ unset($_SESSION['login_error']);
                 both;
         }
 
+
         .field-label {
             display: block;
 
             margin-bottom: 8px;
 
             font-size: 13px;
+
             font-weight: 700;
 
             color: #334155;
         }
 
+
         .role-grid {
             display: grid;
 
             grid-template-columns:
-                repeat(2, 1fr);
+                repeat(2, minmax(0, 1fr));
 
             gap: 9px;
         }
+
 
         /* =====================================================
            ROLE OPTION
@@ -673,8 +785,12 @@ unset($_SESSION['login_error']);
 
         .role-option {
             position: relative;
+
             cursor: pointer;
+
+            min-width: 0;
         }
+
 
         .role-option input {
             position: absolute;
@@ -683,6 +799,7 @@ unset($_SESSION['login_error']);
 
             pointer-events: none;
         }
+
 
         /* =====================================================
            ROLE CARD
@@ -696,11 +813,15 @@ unset($_SESSION['login_error']);
             padding: 10px 11px;
 
             display: flex;
+
             align-items: center;
 
             gap: 10px;
 
-            border: 1px solid #e2e8f0;
+            min-width: 0;
+
+            border:
+                1px solid #e2e8f0;
 
             border-radius: 11px;
 
@@ -714,6 +835,7 @@ unset($_SESSION['login_error']);
                 transform 0.25s ease,
                 box-shadow 0.25s ease;
         }
+
 
         .role-card::before {
             content: "";
@@ -741,9 +863,11 @@ unset($_SESSION['login_error']);
                 left 0.6s ease;
         }
 
+
         .role-card:hover::before {
             left: 140%;
         }
+
 
         .role-card:hover {
             border-color: #93c5fd;
@@ -757,6 +881,7 @@ unset($_SESSION['login_error']);
                 0 8px 20px
                 rgba(37, 99, 235, 0.08);
         }
+
 
         /* =====================================================
            SELECTED ROLE
@@ -787,6 +912,7 @@ unset($_SESSION['login_error']);
                 selectedRole 0.35s ease;
         }
 
+
         @keyframes selectedRole {
 
             0% {
@@ -808,6 +934,7 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         .role-option input:checked + .role-card::after {
             content: "✓";
 
@@ -820,6 +947,7 @@ unset($_SESSION['login_error']);
             height: 19px;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
 
@@ -830,6 +958,7 @@ unset($_SESSION['login_error']);
             color: #ffffff;
 
             font-size: 11px;
+
             font-weight: 800;
 
             box-shadow:
@@ -839,6 +968,7 @@ unset($_SESSION['login_error']);
             animation:
                 checkPop 0.3s ease;
         }
+
 
         @keyframes checkPop {
 
@@ -862,6 +992,7 @@ unset($_SESSION['login_error']);
             }
         }
 
+
         /* =====================================================
            ROLE ICON
         ===================================================== */
@@ -873,6 +1004,7 @@ unset($_SESSION['login_error']);
             flex: 0 0 34px;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
 
@@ -887,11 +1019,13 @@ unset($_SESSION['login_error']);
                 background 0.25s ease;
         }
 
+
         .role-card:hover .role-icon {
             transform:
                 scale(1.08)
                 rotate(-4deg);
         }
+
 
         .role-option input:checked + .role-card .role-icon {
             background: #2563eb;
@@ -904,9 +1038,17 @@ unset($_SESSION['login_error']);
                 rgba(37, 99, 235, 0.20);
         }
 
+
         /* =====================================================
            ROLE TEXT
         ===================================================== */
+
+        .role-info {
+            min-width: 0;
+
+            overflow-wrap: anywhere;
+        }
+
 
         .role-info strong {
             display: block;
@@ -918,6 +1060,7 @@ unset($_SESSION['login_error']);
             margin-bottom: 2px;
         }
 
+
         .role-info span {
             display: block;
 
@@ -926,10 +1069,12 @@ unset($_SESSION['login_error']);
             color: #64748b;
         }
 
+
         .role-option input:checked + .role-card
         .role-info strong {
             color: #1d4ed8;
         }
+
 
         /* =====================================================
            FORM GROUPS
@@ -944,28 +1089,39 @@ unset($_SESSION['login_error']);
                 both;
         }
 
+
         .form-group label {
             display: block;
 
             margin-bottom: 7px;
 
             font-size: 13px;
+
             font-weight: 700;
 
             color: #334155;
         }
 
+
         .input-wrapper {
             position: relative;
+
+            width: 100%;
+
+            min-width: 0;
         }
+
 
         .input-wrapper input {
             width: 100%;
+            max-width: 100%;
+
             height: 43px;
 
             padding: 0 13px;
 
-            border: 1px solid #dbe2ea;
+            border:
+                1px solid #dbe2ea;
 
             border-radius: 10px;
 
@@ -973,7 +1129,14 @@ unset($_SESSION['login_error']);
 
             color: #172033;
 
-            font-size: 13px;
+            /*
+                16px is important on mobile because
+                smaller input text can trigger automatic
+                browser zoom when the field receives focus.
+            */
+            font-size: 16px;
+
+            line-height: 1.2;
 
             outline: none;
 
@@ -983,9 +1146,11 @@ unset($_SESSION['login_error']);
                 transform 0.2s ease;
         }
 
+
         .input-wrapper input::placeholder {
             color: #94a3b8;
         }
+
 
         .input-wrapper input:focus {
             border-color: #2563eb;
@@ -998,6 +1163,7 @@ unset($_SESSION['login_error']);
                 translateY(-1px);
         }
 
+
         /* =====================================================
            PASSWORD
         ===================================================== */
@@ -1005,6 +1171,7 @@ unset($_SESSION['login_error']);
         .password-wrapper input {
             padding-right: 45px;
         }
+
 
         .password-toggle {
             position: absolute;
@@ -1029,6 +1196,7 @@ unset($_SESSION['login_error']);
             height: 28px;
 
             display: flex;
+
             align-items: center;
             justify-content: center;
 
@@ -1038,7 +1206,14 @@ unset($_SESSION['login_error']);
                 color 0.2s ease,
                 background 0.2s ease,
                 transform 0.2s ease;
+
+            /*
+                Prevent this button from causing
+                unwanted gesture behavior.
+            */
+            touch-action: manipulation;
         }
+
 
         .password-toggle:hover {
             color: #2563eb;
@@ -1050,12 +1225,14 @@ unset($_SESSION['login_error']);
                 scale(1.08);
         }
 
+
         /* =====================================================
            LOGIN BUTTON
         ===================================================== */
 
         .login-button {
             width: 100%;
+            max-width: 100%;
 
             min-height: 44px;
 
@@ -1072,7 +1249,8 @@ unset($_SESSION['login_error']);
 
             color: #ffffff;
 
-            font-size: 14px;
+            font-size: 16px;
+
             font-weight: 700;
 
             cursor: pointer;
@@ -1088,7 +1266,10 @@ unset($_SESSION['login_error']);
             transition:
                 transform 0.2s ease,
                 box-shadow 0.2s ease;
+
+            touch-action: manipulation;
         }
+
 
         .login-button::before {
             content: "";
@@ -1116,9 +1297,11 @@ unset($_SESSION['login_error']);
                 left 0.6s ease;
         }
 
+
         .login-button:hover::before {
             left: 140%;
         }
+
 
         .login-button:hover {
             transform:
@@ -1129,11 +1312,13 @@ unset($_SESSION['login_error']);
                 rgba(37, 99, 235, 0.30);
         }
 
+
         .login-button:active {
             transform:
                 translateY(0)
                 scale(0.99);
         }
+
 
         /* =====================================================
            REGISTER
@@ -1154,6 +1339,7 @@ unset($_SESSION['login_error']);
                 both;
         }
 
+
         .register-link a {
             color: #2563eb;
 
@@ -1165,11 +1351,13 @@ unset($_SESSION['login_error']);
                 color 0.2s ease;
         }
 
+
         .register-link a:hover {
             color: #1d4ed8;
 
             text-decoration: underline;
         }
+
 
         /* =====================================================
            FOOTER
@@ -1192,9 +1380,11 @@ unset($_SESSION['login_error']);
                 both;
         }
 
+
         .auth-footer strong {
             color: #64748b;
         }
+
 
         /* =====================================================
            TABLET
@@ -1206,6 +1396,7 @@ unset($_SESSION['login_error']);
                 padding: 18px;
             }
 
+
             .auth-container {
                 max-width: 760px;
 
@@ -1213,32 +1404,40 @@ unset($_SESSION['login_error']);
                     0.9fr 1.1fr;
             }
 
+
             .auth-brand-panel {
                 min-height: 500px;
+
                 padding: 25px;
             }
+
 
             .auth-form-panel {
                 padding: 28px;
             }
+
 
             .auth-logo {
                 width: 82px;
                 height: 82px;
             }
 
+
             .brand-title {
                 font-size: 34px;
             }
+
 
             .brand-tagline {
                 font-size: 14px;
             }
 
+
             .form-header h1 {
                 font-size: 27px;
             }
         }
+
 
         /* =====================================================
            MOBILE
@@ -1246,25 +1445,72 @@ unset($_SESSION['login_error']);
 
         @media (max-width: 700px) {
 
-            .auth-page {
-                min-height: 100vh;
+            html,
+            body {
+                width: 100%;
 
-                padding: 14px;
+                min-width: 0;
 
-                align-items: flex-start;
+                max-width: 100%;
+
+                overflow-x: hidden;
+
+                /*
+                    Prevent pinch zoom.
+                */
+                touch-action: pan-x pan-y;
             }
+
+
+            .auth-page {
+                width: 100%;
+
+                min-width: 0;
+
+                max-width: 100%;
+
+                min-height: 100vh;
+                min-height: 100dvh;
+
+                padding: 10px;
+
+                display: block;
+
+                overflow-x: hidden;
+
+                /*
+                    Allow normal scrolling but not pinch zoom.
+                */
+                touch-action: pan-x pan-y;
+            }
+
 
             .auth-container {
                 width: 100%;
 
-                display: block;
+                min-width: 0;
 
                 max-width: 520px;
 
+                margin: 0 auto;
+
+                display: block;
+
                 border-radius: 18px;
+
+                /*
+                    Do not apply any scale/transform
+                    to the entire login container on mobile.
+                */
+                transform: none !important;
             }
 
+
             .auth-brand-panel {
+                width: 100%;
+
+                min-width: 0;
+
                 min-height: auto;
 
                 padding: 25px 22px;
@@ -1272,13 +1518,17 @@ unset($_SESSION['login_error']);
                 text-align: center;
             }
 
+
             .brand-content {
                 display: flex;
 
                 flex-direction: column;
 
                 align-items: center;
+
+                min-width: 0;
             }
+
 
             .auth-logo {
                 width: 76px;
@@ -1287,11 +1537,13 @@ unset($_SESSION['login_error']);
                 margin-bottom: 12px;
             }
 
+
             .brand-title {
                 font-size: 31px;
 
                 letter-spacing: -1px;
             }
+
 
             .brand-tagline {
                 max-width: 330px;
@@ -1300,6 +1552,7 @@ unset($_SESSION['login_error']);
 
                 font-size: 13px;
             }
+
 
             .brand-features {
                 width: 100%;
@@ -1311,9 +1564,13 @@ unset($_SESSION['login_error']);
                 text-align: left;
             }
 
+
             .brand-feature {
                 font-size: 12px;
+
+                min-width: 0;
             }
+
 
             .feature-icon {
                 width: 25px;
@@ -1324,26 +1581,96 @@ unset($_SESSION['login_error']);
                 font-size: 12px;
             }
 
+
             .auth-form-panel {
+                width: 100%;
+
+                min-width: 0;
+
                 padding: 25px 20px 22px;
+
+                overflow-x: hidden;
             }
+
 
             .form-header {
                 margin-bottom: 18px;
             }
 
+
             .form-header h1 {
                 font-size: 25px;
             }
+
 
             .form-header p {
                 font-size: 13px;
             }
 
+
+            .role-grid {
+                width: 100%;
+
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+
+            .role-option {
+                min-width: 0;
+            }
+
+
             .role-card {
+                min-width: 0;
+
                 min-height: 61px;
             }
+
+
+            .role-info {
+                min-width: 0;
+
+                overflow-wrap: anywhere;
+            }
+
+
+            /*
+                Keep ALL form controls at 16px on mobile.
+                This prevents automatic focus zoom on iPhone
+                and helps keep the form at a stable scale.
+            */
+            .auth-form-panel input,
+            .auth-form-panel select,
+            .auth-form-panel textarea,
+            .auth-form-panel button {
+                font-size: 16px !important;
+            }
+
+
+            .auth-form-panel input,
+            .auth-form-panel select,
+            .auth-form-panel textarea {
+                width: 100%;
+
+                max-width: 100%;
+            }
+
+
+            .password-toggle {
+                font-size: 16px !important;
+
+                touch-action: manipulation;
+            }
+
+
+            .login-button {
+                font-size: 16px !important;
+
+                touch-action: manipulation;
+            }
         }
+
 
         /* =====================================================
            SMALL MOBILE
@@ -1355,22 +1682,27 @@ unset($_SESSION['login_error']);
                 padding: 8px;
             }
 
+
             .auth-container {
                 border-radius: 15px;
             }
 
+
             .auth-brand-panel {
                 padding: 21px 16px;
             }
+
 
             .auth-logo {
                 width: 70px;
                 height: 70px;
             }
 
+
             .brand-title {
                 font-size: 28px;
             }
+
 
             .brand-tagline {
                 font-size: 12px;
@@ -1378,30 +1710,36 @@ unset($_SESSION['login_error']);
                 margin-bottom: 15px;
             }
 
+
             .brand-features {
                 gap: 6px;
             }
+
 
             .brand-feature {
                 font-size: 11px;
             }
 
+
             .auth-form-panel {
                 padding: 22px 15px 18px;
             }
 
+
             .role-grid {
                 grid-template-columns:
-                    1fr 1fr;
+                    repeat(2, minmax(0, 1fr));
 
                 gap: 7px;
             }
+
 
             .role-card {
                 min-height: 58px;
 
                 padding: 8px;
             }
+
 
             .role-icon {
                 width: 30px;
@@ -1412,18 +1750,55 @@ unset($_SESSION['login_error']);
                 font-size: 15px;
             }
 
+
             .role-info strong {
                 font-size: 11px;
             }
+
 
             .role-info span {
                 font-size: 9px;
             }
 
+
             .form-group {
                 margin-bottom: 13px;
             }
+
+
+            .auth-form-panel input,
+            .auth-form-panel select,
+            .auth-form-panel textarea,
+            .auth-form-panel button {
+                font-size: 16px !important;
+            }
         }
+
+
+        /* =====================================================
+           VERY SMALL MOBILE
+        ===================================================== */
+
+        @media (max-width: 360px) {
+
+            .auth-page {
+                padding: 6px;
+            }
+
+
+            .auth-form-panel {
+                padding-left: 12px;
+
+                padding-right: 12px;
+            }
+
+
+            .role-grid {
+                grid-template-columns:
+                    1fr 1fr;
+            }
+        }
+
 
         /* =====================================================
            SHORT LAPTOP SCREENS
@@ -1435,15 +1810,18 @@ unset($_SESSION['login_error']);
                 padding: 12px;
             }
 
+
             .auth-brand-panel {
                 min-height: 500px;
 
                 padding: 24px;
             }
 
+
             .auth-form-panel {
                 padding: 24px 34px;
             }
+
 
             .auth-logo {
                 width: 76px;
@@ -1452,38 +1830,47 @@ unset($_SESSION['login_error']);
                 margin-bottom: 12px;
             }
 
+
             .brand-title {
                 font-size: 35px;
             }
+
 
             .brand-tagline {
                 margin-bottom: 18px;
             }
 
+
             .brand-features {
                 gap: 8px;
             }
+
 
             .role-card {
                 min-height: 59px;
             }
 
+
             .form-header {
                 margin-bottom: 14px;
             }
+
 
             .form-header h1 {
                 font-size: 26px;
             }
 
+
             .form-group {
                 margin-bottom: 11px;
             }
+
 
             .auth-footer {
                 margin-top: 12px;
             }
         }
+
 
         /* =====================================================
            REDUCED MOTION
@@ -1495,6 +1882,7 @@ unset($_SESSION['login_error']);
             *::before,
             *::after {
                 animation: none !important;
+
                 transition: none !important;
             }
         }
@@ -1503,17 +1891,24 @@ unset($_SESSION['login_error']);
 
 </head>
 
+
 <body>
 
-    <!-- Animated background -->
+    <!-- =====================================================
+         ANIMATED BACKGROUND
+    ====================================================== -->
 
     <div class="background-circle one"></div>
+
     <div class="background-circle two"></div>
+
     <div class="background-circle three"></div>
+
 
     <div class="auth-page">
 
         <div class="auth-container">
+
 
             <!-- =================================================
                  BRAND PANEL
@@ -1529,13 +1924,16 @@ unset($_SESSION['login_error']);
                         class="auth-logo"
                     >
 
+
                     <h2 class="brand-title">
                         SportSync
                     </h2>
 
+
                     <p class="brand-tagline">
                         Smart Sports Management System
                     </p>
+
 
                     <div class="brand-features">
 
@@ -1551,6 +1949,7 @@ unset($_SESSION['login_error']);
 
                         </div>
 
+
                         <div class="brand-feature">
 
                             <span class="feature-icon">
@@ -1562,6 +1961,7 @@ unset($_SESSION['login_error']);
                             </span>
 
                         </div>
+
 
                         <div class="brand-feature">
 
@@ -1581,11 +1981,13 @@ unset($_SESSION['login_error']);
 
             </section>
 
+
             <!-- =================================================
                  LOGIN FORM
             ================================================== -->
 
             <section class="auth-form-panel">
+
 
                 <div class="form-header">
 
@@ -1598,6 +2000,7 @@ unset($_SESSION['login_error']);
                     </p>
 
                 </div>
+
 
                 <?php if (!empty($error)): ?>
 
@@ -1613,6 +2016,7 @@ unset($_SESSION['login_error']);
 
                 <?php endif; ?>
 
+
                 <form
                     action="login-process.php"
                     method="POST"
@@ -1620,15 +2024,17 @@ unset($_SESSION['login_error']);
                     id="loginForm"
                 >
 
+
                     <!-- =================================================
                          CSRF PROTECTION
                     ================================================== -->
 
                     <?= csrfField() ?>
 
-                    <!-- =========================================
+
+                    <!-- =================================================
                          ROLE SELECTION
-                    ========================================== -->
+                    ================================================== -->
 
                     <div class="role-section">
 
@@ -1636,7 +2042,9 @@ unset($_SESSION['login_error']);
                             Select your role
                         </span>
 
+
                         <div class="role-grid">
+
 
                             <!-- PLAYER -->
 
@@ -1650,11 +2058,13 @@ unset($_SESSION['login_error']);
                                     required
                                 >
 
+
                                 <div class="role-card">
 
                                     <div class="role-icon">
                                         🧑‍🎓
                                     </div>
+
 
                                     <div class="role-info">
 
@@ -1672,6 +2082,7 @@ unset($_SESSION['login_error']);
 
                             </label>
 
+
                             <!-- COACH -->
 
                             <label class="role-option">
@@ -1683,11 +2094,13 @@ unset($_SESSION['login_error']);
                                     required
                                 >
 
+
                                 <div class="role-card">
 
                                     <div class="role-icon">
                                         🧑‍🏫
                                     </div>
+
 
                                     <div class="role-info">
 
@@ -1705,6 +2118,7 @@ unset($_SESSION['login_error']);
 
                             </label>
 
+
                             <!-- COORDINATOR -->
 
                             <label class="role-option">
@@ -1716,11 +2130,13 @@ unset($_SESSION['login_error']);
                                     required
                                 >
 
+
                                 <div class="role-card">
 
                                     <div class="role-icon">
                                         🏅
                                     </div>
+
 
                                     <div class="role-info">
 
@@ -1738,6 +2154,7 @@ unset($_SESSION['login_error']);
 
                             </label>
 
+
                             <!-- ADMIN -->
 
                             <label class="role-option">
@@ -1749,11 +2166,13 @@ unset($_SESSION['login_error']);
                                     required
                                 >
 
+
                                 <div class="role-card">
 
                                     <div class="role-icon">
                                         ⚙️
                                     </div>
+
 
                                     <div class="role-info">
 
@@ -1771,19 +2190,22 @@ unset($_SESSION['login_error']);
 
                             </label>
 
+
                         </div>
 
                     </div>
 
-                    <!-- =========================================
+
+                    <!-- =================================================
                          EMAIL
-                    ========================================== -->
+                    ================================================== -->
 
                     <div class="form-group">
 
                         <label for="email">
                             Email Address
                         </label>
+
 
                         <div class="input-wrapper">
 
@@ -1793,6 +2215,7 @@ unset($_SESSION['login_error']);
                                 name="email"
                                 placeholder="Enter your email"
                                 autocomplete="email"
+                                inputmode="email"
                                 required
                             >
 
@@ -1800,15 +2223,17 @@ unset($_SESSION['login_error']);
 
                     </div>
 
-                    <!-- =========================================
+
+                    <!-- =================================================
                          PASSWORD
-                    ========================================== -->
+                    ================================================== -->
 
                     <div class="form-group">
 
                         <label for="password">
                             Password
                         </label>
+
 
                         <div class="input-wrapper password-wrapper">
 
@@ -1820,6 +2245,7 @@ unset($_SESSION['login_error']);
                                 autocomplete="current-password"
                                 required
                             >
+
 
                             <button
                                 type="button"
@@ -1834,9 +2260,10 @@ unset($_SESSION['login_error']);
 
                     </div>
 
-                    <!-- =========================================
+
+                    <!-- =================================================
                          LOGIN
-                    ========================================== -->
+                    ================================================== -->
 
                     <button
                         type="submit"
@@ -1845,11 +2272,13 @@ unset($_SESSION['login_error']);
                         Sign In
                     </button>
 
+
                 </form>
 
-                <!-- =============================================
+
+                <!-- =================================================
                      REGISTER
-                ============================================== -->
+                ================================================== -->
 
                 <div class="register-link">
 
@@ -1861,18 +2290,23 @@ unset($_SESSION['login_error']);
 
                 </div>
 
-                <!-- =============================================
+
+                <!-- =================================================
                      FOOTER
-                ============================================== -->
+                ================================================== -->
 
                 <div class="auth-footer">
 
                     <div>
 
-                        <strong>SportSync</strong>
+                        <strong>
+                            SportSync
+                        </strong>
+
                         — Smart Sports Management System
 
                     </div>
+
 
                     <div>
 
@@ -1886,11 +2320,13 @@ unset($_SESSION['login_error']);
 
                 </div>
 
+
             </section>
 
         </div>
 
     </div>
+
 
     <!-- =====================================================
          JAVASCRIPT
@@ -1908,6 +2344,7 @@ unset($_SESSION['login_error']);
         const passwordToggle =
             document.getElementById('passwordToggle');
 
+
         if (passwordInput && passwordToggle) {
 
             passwordToggle.addEventListener(
@@ -1917,15 +2354,18 @@ unset($_SESSION['login_error']);
                     const isPassword =
                         passwordInput.type === 'password';
 
+
                     passwordInput.type =
                         isPassword
                             ? 'text'
                             : 'password';
 
+
                     passwordToggle.textContent =
                         isPassword
                             ? '🙈'
                             : '👁';
+
 
                     passwordToggle.setAttribute(
                         'aria-label',
@@ -1939,6 +2379,7 @@ unset($_SESSION['login_error']);
 
         }
 
+
         /* =================================================
            ROLE SELECTION
         ================================================= */
@@ -1947,6 +2388,7 @@ unset($_SESSION['login_error']);
             document.querySelectorAll(
                 'input[name="selected_role"]'
             );
+
 
         roleInputs.forEach(function (input) {
 
@@ -1962,11 +2404,14 @@ unset($_SESSION['login_error']);
                     const card =
                         input.nextElementSibling;
 
+
                     if (!card) {
                         return;
                     }
 
+
                     card.style.animation = 'none';
+
 
                     /*
                      * Force browser to restart animation.
@@ -1974,8 +2419,10 @@ unset($_SESSION['login_error']);
 
                     void card.offsetWidth;
 
+
                     card.style.animation =
                         'selectedRole 0.35s ease';
+
 
                     /*
                      * Update login button text so the
@@ -1986,6 +2433,7 @@ unset($_SESSION['login_error']);
                         document.querySelector(
                             '.login-button'
                         );
+
 
                     if (loginButton) {
 
@@ -1999,20 +2447,25 @@ unset($_SESSION['login_error']);
                                 'Coordinator',
 
                             ADMIN: 'Admin'
+
                         };
+
 
                         const roleName =
                             roleNames[input.value]
                             || '';
 
+
                         loginButton.textContent =
                             'Sign In as ' + roleName;
+
                     }
 
                 }
             );
 
         });
+
 
         /* =================================================
            INITIAL LOGIN BUTTON
@@ -2023,10 +2476,12 @@ unset($_SESSION['login_error']);
                 'input[name="selected_role"]:checked'
             );
 
+
         const initialLoginButton =
             document.querySelector(
                 '.login-button'
             );
+
 
         if (
             initiallySelectedRole &&
@@ -2043,7 +2498,9 @@ unset($_SESSION['login_error']);
                     'Coordinator',
 
                 ADMIN: 'Admin'
+
             };
+
 
             initialLoginButton.textContent =
                 'Sign In as ' +
@@ -2052,7 +2509,9 @@ unset($_SESSION['login_error']);
                         initiallySelectedRole.value
                     ] || 'Player'
                 );
+
         }
+
 
         /* =================================================
            FORM SUBMIT FEEDBACK
@@ -2060,6 +2519,7 @@ unset($_SESSION['login_error']);
 
         const loginForm =
             document.getElementById('loginForm');
+
 
         if (loginForm) {
 
@@ -2072,16 +2532,20 @@ unset($_SESSION['login_error']);
                             '.login-button'
                         );
 
+
                     if (loginButton) {
 
                         loginButton.textContent =
                             'Signing In...';
 
+
                         loginButton.style.opacity =
                             '0.85';
 
+
                         loginButton.style.cursor =
                             'wait';
+
                     }
 
                 }

@@ -6,242 +6,298 @@ declare(strict_types=1);
 |--------------------------------------------------------------------------
 | SportSync - Admin Dashboard
 |--------------------------------------------------------------------------
+| Admin is responsible for:
+| 1. Student accounts
+| 2. Sports
+| 3. Event formats (Solo / Team)
+| 4. Teams
+| 5. Overall system management
+|--------------------------------------------------------------------------
 */
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
 
-/*
-|--------------------------------------------------------------------------
-| Require Login
-|--------------------------------------------------------------------------
-*/
-
 requireLogin();
 
 $user = currentUser();
-
-/*
-|--------------------------------------------------------------------------
-| Admin-only access
-|--------------------------------------------------------------------------
-*/
 
 if (($user['role'] ?? '') !== 'ADMIN') {
     http_response_code(403);
     exit('Access denied.');
 }
 
+$pdo = db();
+
+$pageTitle = 'Admin Dashboard';
+
 /*
 |--------------------------------------------------------------------------
-| Database
+| Helper functions
 |--------------------------------------------------------------------------
 */
 
-$pdo = db();
+function adminDashboardEscape(mixed $value): string
+{
+    return htmlspecialchars(
+        (string) ($value ?? ''),
+        ENT_QUOTES,
+        'UTF-8'
+    );
+}
 
 /*
 |--------------------------------------------------------------------------
-| Dashboard Statistics
+| Dashboard statistics
 |--------------------------------------------------------------------------
 */
 
 $totalStudents = 0;
 $pendingStudents = 0;
 $totalSports = 0;
+$activeSports = 0;
+$totalEventFormats = 0;
 $totalTeams = 0;
-$totalCoaches = 0;
-$totalTournaments = 0;
-$totalMatches = 0;
+$totalCompetitions = 0;
+
+$dashboardError = false;
+
+/*
+|--------------------------------------------------------------------------
+| Students
+|--------------------------------------------------------------------------
+*/
 
 try {
-    $stmt = $pdo->query(
+    $totalStudents = (int) $pdo->query(
         "SELECT COUNT(*)
          FROM users
          WHERE role_id = 4"
-    );
-    $totalStudents = (int) $stmt->fetchColumn();
+    )->fetchColumn();
 
-    $stmt = $pdo->query(
+    $pendingStudents = (int) $pdo->query(
         "SELECT COUNT(*)
          FROM users
          WHERE role_id = 4
-         AND account_status = 'PENDING'"
-    );
-    $pendingStudents = (int) $stmt->fetchColumn();
+           AND account_status = 'PENDING'"
+    )->fetchColumn();
+} catch (Throwable $exception) {
+    $dashboardError = true;
 
-    $stmt = $pdo->query(
-        "SELECT COUNT(*)
-         FROM sports"
-    );
-    $totalSports = (int) $stmt->fetchColumn();
-
-    $stmt = $pdo->query(
-        "SELECT COUNT(*)
-         FROM teams"
-    );
-    $totalTeams = (int) $stmt->fetchColumn();
-
-    $stmt = $pdo->query(
-        "SELECT COUNT(*)
-         FROM users
-         WHERE role_id = 3"
-    );
-    $totalCoaches = (int) $stmt->fetchColumn();
-
-    $stmt = $pdo->query(
-        "SELECT COUNT(*)
-         FROM tournaments"
-    );
-    $totalTournaments = (int) $stmt->fetchColumn();
-
-    $stmt = $pdo->query(
-        "SELECT COUNT(*)
-         FROM matches"
-    );
-    $totalMatches = (int) $stmt->fetchColumn();
-} catch (Throwable $e) {
     error_log(
-        'Admin dashboard statistics error: ' .
-        $e->getMessage()
+        'Admin dashboard student statistics error: '
+        . $exception->getMessage()
     );
 }
 
 /*
 |--------------------------------------------------------------------------
-| Recent Pending Students
+| Sports
 |--------------------------------------------------------------------------
 */
 
-$recentPendingStudents = [];
-
 try {
-    $stmt = $pdo->query(
-        "SELECT
-            user_id,
-            full_name,
-            email,
-            created_at
-         FROM users
-         WHERE role_id = 4
-         AND account_status = 'PENDING'
-         ORDER BY created_at DESC
-         LIMIT 5"
-    );
+    $totalSports = (int) $pdo->query(
+        "SELECT COUNT(*) FROM sports"
+    )->fetchColumn();
 
-    $recentPendingStudents = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
+    $activeSports = (int) $pdo->query(
+        "SELECT COUNT(*)
+         FROM sports
+         WHERE sport_status = 'ACTIVE'"
+    )->fetchColumn();
+} catch (Throwable $exception) {
+    $dashboardError = true;
+
     error_log(
-        'Admin pending students error: ' .
-        $e->getMessage()
+        'Admin dashboard sports statistics error: '
+        . $exception->getMessage()
     );
 }
 
 /*
 |--------------------------------------------------------------------------
-| Recent Tournaments
+| Event formats
+|--------------------------------------------------------------------------
+|
+| Examples:
+| Athletics -> 100m Running -> SOLO
+| Athletics -> 4x100m Relay -> TEAM
+| Badminton -> Singles -> SOLO
+| Badminton -> Doubles -> TEAM
+|
+*/
+
+try {
+    $totalEventFormats = (int) $pdo->query(
+        "SELECT COUNT(*)
+         FROM sport_events
+         WHERE event_status = 'ACTIVE'"
+    )->fetchColumn();
+} catch (Throwable $exception) {
+    $dashboardError = true;
+
+    error_log(
+        'Admin dashboard event format statistics error: '
+        . $exception->getMessage()
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Teams
 |--------------------------------------------------------------------------
 */
 
-$recentTournaments = [];
+try {
+    $totalTeams = (int) $pdo->query(
+        "SELECT COUNT(*) FROM teams"
+    )->fetchColumn();
+} catch (Throwable $exception) {
+    $dashboardError = true;
+
+    error_log(
+        'Admin dashboard team statistics error: '
+        . $exception->getMessage()
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Competitions
+|--------------------------------------------------------------------------
+|
+| The existing "events" table represents actual scheduled competitions.
+|
+*/
 
 try {
-    $stmt = $pdo->query(
+    $totalCompetitions = (int) $pdo->query(
+        "SELECT COUNT(*) FROM events"
+    )->fetchColumn();
+} catch (Throwable $exception) {
+    $dashboardError = true;
+
+    error_log(
+        'Admin dashboard competition statistics error: '
+        . $exception->getMessage()
+    );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Recent competitions
+|--------------------------------------------------------------------------
+*/
+
+$recentCompetitions = [];
+
+try {
+    $statement = $pdo->query(
         "SELECT
-            t.tournament_id,
-            t.tournament_name,
-            t.start_date,
-            t.end_date,
-            t.tournament_status,
+            e.event_id,
+            e.event_title,
+            e.event_start,
+            e.event_status,
             s.sport_name
-         FROM tournaments t
-         LEFT JOIN sports s
-            ON s.sport_id = t.sport_id
-         ORDER BY t.created_at DESC
+         FROM events e
+         INNER JOIN sports s
+            ON s.sport_id = e.sport_id
+         ORDER BY e.created_at DESC
          LIMIT 5"
     );
 
-    $recentTournaments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Throwable $e) {
+    $recentCompetitions = $statement->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $exception) {
+    $dashboardError = true;
+
     error_log(
-        'Admin tournaments error: ' .
-        $e->getMessage()
+        'Admin dashboard competitions error: '
+        . $exception->getMessage()
     );
 }
 
 /*
 |--------------------------------------------------------------------------
-| Helper
+| Event format summary
 |--------------------------------------------------------------------------
 */
 
-function e(?string $value): string
-{
-    return htmlspecialchars(
-        $value ?? '',
-        ENT_QUOTES,
-        'UTF-8'
+$eventFormatSummary = [];
+
+try {
+    $statement = $pdo->query(
+        "SELECT
+            s.sport_name,
+            se.event_type,
+            COUNT(*) AS format_count
+         FROM sport_events se
+         INNER JOIN sports s
+            ON s.sport_id = se.sport_id
+         WHERE se.event_status = 'ACTIVE'
+         GROUP BY s.sport_name, se.event_type
+         ORDER BY s.sport_name, se.event_type"
+    );
+
+    $eventFormatSummary = $statement->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $exception) {
+    $dashboardError = true;
+
+    error_log(
+        'Admin dashboard format summary error: '
+        . $exception->getMessage()
     );
 }
 
-function dashboardStatusClass(?string $status): string
+/*
+|--------------------------------------------------------------------------
+| Date helper
+|--------------------------------------------------------------------------
+*/
+
+function adminDashboardDate(?string $date): string
 {
-    $status = strtoupper($status ?? '');
+    if (!$date) {
+        return '—';
+    }
 
-    return match ($status) {
-        'APPROVED',
+    $timestamp = strtotime($date);
+
+    return $timestamp
+        ? date('M j, Y • g:i A', $timestamp)
+        : '—';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Status helper
+|--------------------------------------------------------------------------
+*/
+
+function adminDashboardStatusClass(?string $status): string
+{
+    return match (strtoupper($status ?? '')) {
         'ACTIVE',
-        'REGISTRATION_OPEN',
+        'OPEN',
         'ONGOING',
-        'COMPLETED' => 'status-success',
+        'COMPLETED'
+            => 'admin-status-success',
 
-        'PENDING',
+        'DRAFT',
         'UPCOMING',
-        'DRAFT' => 'status-warning',
+        'CLOSED'
+            => 'admin-status-warning',
 
-        'REJECTED',
-        'SUSPENDED',
-        'CANCELLED' => 'status-danger',
+        'CANCELLED',
+        'INACTIVE'
+            => 'admin-status-danger',
 
-        default => 'status-neutral'
+        default
+            => 'admin-status-neutral',
     };
 }
 
-/*
-|--------------------------------------------------------------------------
-| Admin Next Step
-|--------------------------------------------------------------------------
-*/
-
-$hasAdminAction = $pendingStudents > 0;
-
-if ($hasAdminAction) {
-    $nextStepTitle = 'Review Pending Student Approvals';
-
-    $nextStepDescription =
-        'There are ' .
-        $pendingStudents .
-        ' student account' .
-        ($pendingStudents === 1 ? '' : 's') .
-        ' waiting for your approval.';
-
-    $nextStepButton = 'Review Pending Students';
-    $nextStepLink = 'admin-pending-students.php';
-    $nextStepIcon = '👨‍🎓';
-} else {
-    $nextStepTitle = 'You are all caught up';
-
-    $nextStepDescription =
-        'There are no student registrations waiting for approval. ' .
-        'You can continue managing teams or tournaments.';
-
-    $nextStepButton = 'Manage Teams';
-    $nextStepLink = 'admin-teams.php';
-    $nextStepIcon = '✓';
-}
-
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -258,7 +314,7 @@ if ($hasAdminAction) {
 
     <meta
         name="description"
-        content="SportSync Smart Sports Management System Admin Dashboard"
+        content="SportSync administrator dashboard"
     >
 
     <link
@@ -274,62 +330,68 @@ if ($hasAdminAction) {
 
     <style>
 
-        /* =========================================================
-           SPORTSYNC ADMIN DASHBOARD
-        ========================================================= */
+        /*
+        |--------------------------------------------------------------------------
+        | ADMIN DASHBOARD
+        |--------------------------------------------------------------------------
+        | Existing SportSync blue and white theme is preserved.
+        */
 
         .admin-dashboard {
+            width: 100%;
+            max-width: 1500px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 26px;
+            gap: 24px;
         }
 
-        /* =========================================================
-           HERO
-        ========================================================= */
+        .admin-dashboard *,
+        .admin-dashboard *::before,
+        .admin-dashboard *::after {
+            box-sizing: border-box;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Welcome
+        |--------------------------------------------------------------------------
+        */
 
         .admin-hero {
             position: relative;
             overflow: hidden;
-            padding: 30px 32px;
-            border-radius: 24px;
-            background:
-                linear-gradient(
-                    135deg,
-                    #0b1f4d 0%,
-                    #1647a8 55%,
-                    #2563eb 100%
-                );
-            color: #ffffff;
-            box-shadow: 0 18px 45px rgba(15, 35, 80, 0.18);
-        }
-
-        .admin-hero::before {
-            content: "";
-            position: absolute;
-            width: 260px;
-            height: 260px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.07);
-            right: -70px;
-            top: -110px;
+            padding: 28px 30px;
+            border-radius: 22px;
+            color: #fff;
+            background: linear-gradient(
+                135deg,
+                #0b1f4d 0%,
+                #1647a8 55%,
+                #2563eb 100%
+            );
+            box-shadow: 0 16px 40px rgba(15, 35, 80, .16);
         }
 
         .admin-hero::after {
             content: "";
             position: absolute;
-            width: 180px;
-            height: 180px;
+            width: 220px;
+            height: 220px;
+            right: -70px;
+            top: -115px;
+            border: 1px solid rgba(255, 255, 255, .15);
             border-radius: 50%;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            right: 100px;
-            bottom: -110px;
+            box-shadow:
+                0 0 0 35px rgba(255, 255, 255, .035),
+                0 0 0 70px rgba(255, 255, 255, .025);
+            pointer-events: none;
         }
 
         .admin-hero-content {
             position: relative;
-            z-index: 2;
-            max-width: 780px;
+            z-index: 1;
+            max-width: 800px;
         }
 
         .admin-hero-label {
@@ -337,123 +399,43 @@ if ($hasAdminAction) {
             align-items: center;
             gap: 8px;
             margin-bottom: 12px;
-            padding: 7px 13px;
+            padding: 7px 12px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.12);
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.08em;
+            background: rgba(255, 255, 255, .13);
+            font-size: 11px;
+            font-weight: 750;
+            letter-spacing: .07em;
             text-transform: uppercase;
         }
 
         .admin-hero h1 {
             margin: 0 0 10px;
-            font-size: clamp(26px, 4vw, 38px);
-            line-height: 1.15;
+            color: #fff;
+            font-size: clamp(25px, 3vw, 35px);
             font-weight: 800;
+            line-height: 1.2;
         }
 
         .admin-hero p {
+            max-width: 760px;
             margin: 0;
-            max-width: 700px;
-            color: rgba(255, 255, 255, 0.84);
-            font-size: 15px;
+            color: rgba(255, 255, 255, .86);
+            font-size: 14px;
             line-height: 1.7;
         }
 
-        /* =========================================================
-           NEXT STEP
-        ========================================================= */
-
-        .admin-next-step {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 24px;
-            padding: 24px 26px;
-            border: 1px solid #dbe7ff;
-            border-radius: 20px;
-            background: #f8fbff;
-            box-shadow: 0 8px 24px rgba(20, 35, 65, 0.05);
-        }
-
-        .admin-next-step-main {
-            display: flex;
-            align-items: center;
-            gap: 17px;
-            min-width: 0;
-        }
-
-        .admin-next-step-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-            width: 52px;
-            height: 52px;
-            border-radius: 15px;
-            background: #e8f0ff;
-            color: #2563eb;
-            font-size: 22px;
-        }
-
-        .admin-next-step-label {
-            margin: 0 0 5px;
-            color: #2563eb;
-            font-size: 11px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-        }
-
-        .admin-next-step-title {
-            margin: 0;
-            color: #111827;
-            font-size: 18px;
-            font-weight: 800;
-        }
-
-        .admin-next-step-description {
-            margin: 5px 0 0;
-            color: #64748b;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        .admin-next-step-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-            min-height: 44px;
-            padding: 0 18px;
-            border-radius: 11px;
-            background: #2563eb;
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 750;
-            text-decoration: none;
-            white-space: nowrap;
-            transition:
-                background 0.2s ease,
-                transform 0.2s ease;
-        }
-
-        .admin-next-step-button:hover {
-            background: #1d4ed8;
-            transform: translateY(-1px);
-        }
-
-        /* =========================================================
-           SECTION HEADING
-        ========================================================= */
+        /*
+        |--------------------------------------------------------------------------
+        | Section heading
+        |--------------------------------------------------------------------------
+        */
 
         .admin-section-heading {
             display: flex;
-            align-items: end;
+            align-items: flex-end;
             justify-content: space-between;
-            gap: 15px;
+            gap: 12px;
+            margin-bottom: 14px;
         }
 
         .admin-section-heading h2 {
@@ -467,110 +449,261 @@ if ($hasAdminAction) {
             margin: 5px 0 0;
             color: #64748b;
             font-size: 12px;
+            line-height: 1.5;
         }
 
-        /* =========================================================
-           STATISTICS
-        ========================================================= */
+        /*
+        |--------------------------------------------------------------------------
+        | Statistics
+        |--------------------------------------------------------------------------
+        */
 
         .admin-stats {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 18px;
+            gap: 16px;
         }
 
         .admin-stat-card {
-            position: relative;
-            overflow: hidden;
-            padding: 21px;
+            min-width: 0;
+            padding: 20px;
             border: 1px solid #e8edf5;
-            border-radius: 18px;
-            background: #ffffff;
-            box-shadow: 0 8px 24px rgba(20, 35, 65, 0.06);
+            border-radius: 17px;
+            background: #fff;
+            box-shadow: 0 7px 22px rgba(20, 35, 65, .045);
+            transition:
+                transform .18s ease,
+                box-shadow .18s ease;
         }
 
-        .admin-stat-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            margin-bottom: 18px;
+        .admin-stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 26px rgba(20, 35, 65, .08);
         }
 
         .admin-stat-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 45px;
-            height: 45px;
+            display: grid;
+            place-items: center;
+            width: 43px;
+            height: 43px;
+            margin-bottom: 17px;
             border-radius: 13px;
             background: #eef4ff;
-            color: #1d4ed8;
-            font-size: 20px;
+            color: #2563eb;
+            font-size: 19px;
         }
 
         .admin-stat-number {
             margin: 0;
             color: #111827;
             font-size: 29px;
-            font-weight: 800;
-            line-height: 1;
+            font-weight: 850;
+            line-height: 1.1;
         }
 
         .admin-stat-title {
-            margin: 8px 0 0;
+            margin: 7px 0 0;
             color: #64748b;
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 12px;
+            font-weight: 650;
         }
 
-        /* =========================================================
-           MAIN WORK GRID
-        ========================================================= */
+        /*
+        |--------------------------------------------------------------------------
+        | Pending students
+        |--------------------------------------------------------------------------
+        */
 
-        .admin-main-grid {
+        .admin-pending-notice {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 18px 20px;
+            border: 1px solid #f4d49b;
+            border-radius: 16px;
+            background: #fffaf0;
+        }
+
+        .admin-pending-notice-icon {
             display: grid;
-            grid-template-columns:
-                minmax(0, 1.45fr)
-                minmax(300px, 0.8fr);
-            gap: 22px;
+            place-items: center;
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: #fff0cc;
+            font-size: 19px;
         }
 
-        .admin-panel {
+        .admin-pending-notice-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .admin-pending-notice h2 {
+            margin: 0;
+            color: #854d0e;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .admin-pending-notice p {
+            margin: 4px 0 0;
+            color: #92400e;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Buttons
+        |--------------------------------------------------------------------------
+        */
+
+        .admin-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 43px;
+            padding: 0 17px;
+            border: 0;
+            border-radius: 10px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 750;
+            text-decoration: none;
+            white-space: nowrap;
+            transition:
+                background .18s ease,
+                transform .18s ease;
+        }
+
+        .admin-button:hover {
+            background: #1d4ed8;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .admin-button-secondary {
+            background: #eef4ff;
+            color: #2563eb;
+        }
+
+        .admin-button-secondary:hover {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Main responsibilities
+        |--------------------------------------------------------------------------
+        */
+
+        .admin-responsibilities {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .admin-responsibility {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            padding: 19px;
+            border: 1px solid #e8edf5;
+            border-radius: 17px;
+            background: #fff;
+            box-shadow: 0 7px 22px rgba(20, 35, 65, .045);
+        }
+
+        .admin-responsibility-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .admin-responsibility-icon {
+            display: grid;
+            place-items: center;
+            flex: 0 0 44px;
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            background: #eef4ff;
+            font-size: 20px;
+        }
+
+        .admin-responsibility h3 {
+            margin: 0;
+            color: #172033;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .admin-responsibility p {
+            margin: 13px 0 17px;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        .admin-responsibility-link {
+            margin-top: auto;
+            color: #2563eb;
+            font-size: 12px;
+            font-weight: 750;
+            text-decoration: none;
+        }
+
+        .admin-responsibility-link:hover {
+            text-decoration: underline;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Format overview
+        |--------------------------------------------------------------------------
+        */
+
+        .admin-format-panel {
             min-width: 0;
             overflow: hidden;
             border: 1px solid #e8edf5;
-            border-radius: 20px;
-            background: #ffffff;
-            box-shadow: 0 8px 24px rgba(20, 35, 65, 0.05);
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 7px 22px rgba(20, 35, 65, .045);
         }
 
         .admin-panel-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 16px;
-            padding: 21px 24px;
+            gap: 14px;
+            padding: 20px 22px;
             border-bottom: 1px solid #edf1f6;
         }
 
-        .admin-panel-title {
+        .admin-panel-header h2 {
             margin: 0;
             color: #111827;
-            font-size: 17px;
-            font-weight: 750;
+            font-size: 16px;
+            font-weight: 800;
         }
 
-        .admin-panel-subtitle {
+        .admin-panel-header p {
             margin: 5px 0 0;
             color: #64748b;
             font-size: 12px;
+            line-height: 1.5;
         }
 
         .admin-panel-link {
             color: #2563eb;
             font-size: 12px;
-            font-weight: 700;
+            font-weight: 750;
             text-decoration: none;
             white-space: nowrap;
         }
@@ -579,255 +712,191 @@ if ($hasAdminAction) {
             text-decoration: underline;
         }
 
-        /* =========================================================
-           PENDING STUDENTS TABLE
-        ========================================================= */
-
-        .admin-table-wrap {
-            width: 100%;
-            overflow-x: auto;
+        .admin-format-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
-        .admin-table {
-            width: 100%;
-            min-width: 560px;
-            border-collapse: collapse;
+        .admin-format-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #edf1f6;
         }
 
-        .admin-table th {
-            padding: 13px 20px;
-            background: #f8fafc;
-            color: #64748b;
-            font-size: 11px;
-            font-weight: 750;
-            text-align: left;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+        .admin-format-row:nth-child(odd) {
+            border-right: 1px solid #edf1f6;
         }
 
-        .admin-table td {
-            padding: 15px 20px;
-            border-top: 1px solid #edf1f6;
-            color: #334155;
+        .admin-format-sport {
+            color: #172033;
             font-size: 13px;
+            font-weight: 800;
         }
 
-        .admin-student-name {
-            color: #111827;
-            font-weight: 700;
-        }
-
-        .admin-student-email {
-            margin-top: 3px;
-            color: #94a3b8;
-            font-size: 11px;
-        }
-
-        .admin-status {
+        .admin-format-type {
             display: inline-flex;
             align-items: center;
-            padding: 5px 10px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: 750;
-            letter-spacing: 0.03em;
-        }
-
-        .status-success {
-            background: #ecfdf3;
-            color: #15803d;
-        }
-
-        .status-warning {
-            background: #fff7ed;
-            color: #c2410c;
-        }
-
-        .status-danger {
-            background: #fef2f2;
-            color: #dc2626;
-        }
-
-        .status-neutral {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .admin-empty {
-            padding: 38px 24px;
+            gap: 6px;
+            margin-top: 5px;
             color: #64748b;
-            font-size: 13px;
-            text-align: center;
-        }
-
-        /* =========================================================
-           COMMON TASKS
-        ========================================================= */
-
-        .admin-actions {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .admin-action {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 16px 22px;
-            border-bottom: 1px solid #edf1f6;
-            color: #1e293b;
-            text-decoration: none;
-            transition: background 0.2s ease;
-        }
-
-        .admin-action:last-child {
-            border-bottom: 0;
-        }
-
-        .admin-action:hover {
-            background: #f8fbff;
-        }
-
-        .admin-action-icon {
-            display: flex;
-            flex: 0 0 auto;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            background: #eef4ff;
-            color: #2563eb;
-            font-size: 18px;
-        }
-
-        .admin-action-content {
-            flex: 1;
-        }
-
-        .admin-action-title {
-            display: block;
-            font-size: 13px;
-            font-weight: 750;
-        }
-
-        .admin-action-description {
-            display: block;
-            margin-top: 3px;
-            color: #94a3b8;
             font-size: 11px;
         }
 
-        .admin-action-arrow {
-            color: #94a3b8;
-            font-size: 18px;
+        .admin-format-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 32px;
+            height: 28px;
+            padding: 0 9px;
+            border-radius: 999px;
+            background: #eef4ff;
+            color: #2563eb;
+            font-size: 11px;
+            font-weight: 800;
         }
 
-        /* =========================================================
-           RECENT TOURNAMENTS
-        ========================================================= */
+        /*
+        |--------------------------------------------------------------------------
+        | Recent competitions
+        |--------------------------------------------------------------------------
+        */
 
-        .admin-tournament-list {
+        .admin-competition-list {
             display: flex;
             flex-direction: column;
         }
 
-        .admin-tournament {
+        .admin-competition {
             display: flex;
             align-items: center;
-            gap: 15px;
-            padding: 17px 22px;
+            gap: 13px;
+            padding: 15px 20px;
             border-bottom: 1px solid #edf1f6;
         }
 
-        .admin-tournament:last-child {
+        .admin-competition:last-child {
             border-bottom: 0;
         }
 
-        .admin-tournament-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 43px;
-            height: 43px;
-            flex: 0 0 auto;
-            border-radius: 13px;
-            background: #f0fdf4;
-            font-size: 19px;
+        .admin-competition-icon {
+            display: grid;
+            place-items: center;
+            flex: 0 0 42px;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: #eef4ff;
+            font-size: 18px;
         }
 
-        .admin-tournament-info {
+        .admin-competition-info {
             flex: 1;
             min-width: 0;
         }
 
-        .admin-tournament-name {
+        .admin-competition-name {
             overflow: hidden;
-            color: #1e293b;
-            font-size: 13px;
-            font-weight: 750;
+            color: #172033;
+            font-size: 12px;
+            font-weight: 800;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
-        .admin-tournament-meta {
+        .admin-competition-meta {
             margin-top: 5px;
             color: #94a3b8;
             font-size: 11px;
+            line-height: 1.5;
         }
 
-        /* =========================================================
-           SYSTEM INFORMATION
-        ========================================================= */
+        /*
+        |--------------------------------------------------------------------------
+        | Status
+        |--------------------------------------------------------------------------
+        */
 
-        .admin-overview-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .admin-overview-card {
-            padding: 21px;
-            border: 1px solid #e8edf5;
-            border-radius: 18px;
-            background: #ffffff;
-            box-shadow: 0 8px 24px rgba(20, 35, 65, 0.05);
-        }
-
-        .admin-overview-icon {
-            display: flex;
+        .admin-status {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 42px;
-            height: 42px;
-            margin-bottom: 15px;
-            border-radius: 12px;
-            background: #eef4ff;
-            font-size: 18px;
-        }
-
-        .admin-overview-card h3 {
-            margin: 0;
-            color: #111827;
-            font-size: 15px;
-        }
-
-        .admin-overview-card p {
-            margin: 7px 0 13px;
-            color: #64748b;
-            font-size: 12px;
-            line-height: 1.6;
-        }
-
-        .admin-overview-value {
-            color: #2563eb;
-            font-size: 21px;
+            padding: 5px 9px;
+            border-radius: 999px;
+            max-width: 150px;
+            font-size: 10px;
             font-weight: 800;
+            line-height: 1.4;
+            text-align: center;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
 
-        /* =========================================================
-           RESPONSIVE
-        ========================================================= */
+        .admin-status-success {
+            background: #ecfdf3;
+            color: #15803d;
+        }
+
+        .admin-status-warning {
+            background: #fff7ed;
+            color: #c2410c;
+        }
+
+        .admin-status-danger {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .admin-status-neutral {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Empty state
+        |--------------------------------------------------------------------------
+        */
+
+        .admin-empty {
+            padding: 30px 22px;
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .admin-empty strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #172033;
+            font-size: 14px;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Error notice
+        |--------------------------------------------------------------------------
+        */
+
+        .admin-dashboard-notice {
+            padding: 12px 15px;
+            border: 1px solid #fed7aa;
+            border-radius: 12px;
+            background: #fff7ed;
+            color: #9a3412;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Responsive
+        |--------------------------------------------------------------------------
+        */
 
         @media (max-width: 1100px) {
 
@@ -835,48 +904,111 @@ if ($hasAdminAction) {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .admin-main-grid {
+            .admin-responsibilities {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 900px) {
+
+            .admin-format-list {
                 grid-template-columns: 1fr;
             }
 
-            .admin-overview-grid {
-                grid-template-columns: 1fr;
+            .admin-format-row:nth-child(odd) {
+                border-right: 0;
             }
         }
 
         @media (max-width: 700px) {
 
             .admin-dashboard {
-                gap: 20px;
+                gap: 19px;
             }
 
             .admin-hero {
-                padding: 24px;
-                border-radius: 20px;
+                padding: 24px 21px;
+                border-radius: 18px;
             }
 
-            .admin-next-step {
-                flex-direction: column;
+            .admin-pending-notice {
                 align-items: stretch;
-                padding: 20px;
+                flex-direction: column;
             }
 
-            .admin-next-step-button {
+            .admin-button {
                 width: 100%;
             }
+
+            .admin-stats {
+                gap: 12px;
+            }
+
+            .admin-stat-card {
+                padding: 16px;
+            }
+
+            .admin-stat-number {
+                font-size: 25px;
+            }
+
+            .admin-panel-header {
+                padding: 17px;
+            }
+
+            .admin-competition {
+                align-items: flex-start;
+                flex-wrap: wrap;
+            }
+
+            .admin-competition .admin-status {
+                margin-left: 55px;
+            }
+        }
+
+        @media (max-width: 420px) {
 
             .admin-stats {
                 grid-template-columns: 1fr;
             }
 
-            .admin-panel-header {
-                padding: 18px;
+            .admin-stat-card {
+                display: grid;
+                grid-template-columns: 44px 1fr;
+                column-gap: 13px;
+                align-items: center;
             }
 
-            .admin-table td,
-            .admin-table th {
-                padding-left: 15px;
-                padding-right: 15px;
+            .admin-stat-icon {
+                grid-row: span 2;
+                margin: 0;
+            }
+
+            .admin-stat-number {
+                font-size: 24px;
+            }
+
+            .admin-stat-title {
+                margin-top: 3px;
+            }
+
+            .admin-panel-header {
+                align-items: flex-start;
+            }
+
+            .admin-format-row {
+                padding: 15px 16px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            .admin-dashboard *,
+            .admin-dashboard *::before,
+            .admin-dashboard *::after {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important;
             }
         }
 
@@ -888,158 +1020,156 @@ if ($hasAdminAction) {
 
 <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
-<div class="page-container">
+<main class="admin-dashboard">
 
-    <main class="admin-dashboard">
+    <!-- =========================================================
+         WELCOME
+    ========================================================== -->
 
-        <!-- =====================================================
-             HERO
-        ====================================================== -->
+    <section class="admin-hero">
 
-        <section class="admin-hero">
+        <div class="admin-hero-content">
 
-            <div class="admin-hero-content">
+            <div class="admin-hero-label">
+                🛡️ Admin Control Center
+            </div>
 
-                <div class="admin-hero-label">
-                    🛡️ Admin Control Center
-                </div>
+            <h1>
+                Welcome back,
+                <?= adminDashboardEscape($user['full_name'] ?? 'Administrator'); ?>!
+            </h1>
 
-                <h1>
-                    Welcome back,
-                    <?= e($user['full_name'] ?? 'Administrator'); ?> 👋
-                </h1>
+            <p>
+                Manage the SportSync system, sports, event formats,
+                student accounts, and teams from one place.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         ERROR NOTICE
+    ========================================================== -->
+
+    <?php if ($dashboardError): ?>
+
+        <div
+            class="admin-dashboard-notice"
+            role="status"
+        >
+            Some dashboard information could not be loaded.
+            Please refresh the page or check the application error log.
+        </div>
+
+    <?php endif; ?>
+
+
+    <!-- =========================================================
+         SYSTEM OVERVIEW
+    ========================================================== -->
+
+    <section aria-labelledby="admin-overview-title">
+
+        <div class="admin-section-heading">
+
+            <div>
+
+                <h2 id="admin-overview-title">
+                    System overview
+                </h2>
 
                 <p>
-                    Your role is to keep SportSync organized and running
-                    smoothly. Manage student access, teams and
-                    tournaments, and monitor the overall sports system.
+                    A quick view of the main SportSync records.
                 </p>
 
             </div>
 
-        </section>
+        </div>
 
-        <!-- =====================================================
-             YOUR NEXT STEP
-        ====================================================== -->
 
-        <section class="admin-next-step">
+        <div class="admin-stats">
 
-            <div class="admin-next-step-main">
-
-                <div class="admin-next-step-icon">
-                    <?= $nextStepIcon; ?>
-                </div>
-
-                <div>
-
-                    <p class="admin-next-step-label">
-                        Your Next Step
-                    </p>
-
-                    <h2 class="admin-next-step-title">
-                        <?= e($nextStepTitle); ?>
-                    </h2>
-
-                    <p class="admin-next-step-description">
-                        <?= e($nextStepDescription); ?>
-                    </p>
-
-                </div>
-
-            </div>
-
-            <a
-                href="<?= e($nextStepLink); ?>"
-                class="admin-next-step-button"
-            >
-                <?= e($nextStepButton); ?> →
-            </a>
-
-        </section>
-
-        <!-- =====================================================
-             SYSTEM OVERVIEW
-        ====================================================== -->
-
-        <section>
-
-            <div class="admin-section-heading">
-
-                <div>
-
-                    <h2>
-                        System Overview
-                    </h2>
-
-                    <p>
-                        A quick view of the information you manage.
-                    </p>
-
-                </div>
-
-            </div>
-
-        </section>
-
-        <!-- =====================================================
-             PRIMARY STATISTICS
-        ====================================================== -->
-
-        <section class="admin-stats">
+            <!-- Students -->
 
             <article class="admin-stat-card">
 
-                <div class="admin-stat-top">
-
-                    <div class="admin-stat-icon">
-                        👨‍🎓
-                    </div>
-
+                <div
+                    class="admin-stat-icon"
+                    aria-hidden="true"
+                >
+                    👨‍🎓
                 </div>
 
                 <p class="admin-stat-number">
-                    <?= $totalStudents; ?>
+                    <?= number_format($totalStudents); ?>
                 </p>
 
                 <p class="admin-stat-title">
-                    Registered Students
+                    Registered students
                 </p>
 
             </article>
 
+
+            <!-- Sports -->
+
             <article class="admin-stat-card">
 
-                <div class="admin-stat-top">
-
-                    <div class="admin-stat-icon">
-                        🏃
-                    </div>
-
+                <div
+                    class="admin-stat-icon"
+                    aria-hidden="true"
+                >
+                    🏅
                 </div>
 
                 <p class="admin-stat-number">
-                    <?= $totalSports; ?>
+                    <?= number_format($activeSports); ?>
                 </p>
 
                 <p class="admin-stat-title">
-                    Sports
+                    Active sports
                 </p>
 
             </article>
 
+
+            <!-- Event formats -->
+
             <article class="admin-stat-card">
 
-                <div class="admin-stat-top">
-
-                    <div class="admin-stat-icon">
-                        👥
-                    </div>
-
+                <div
+                    class="admin-stat-icon"
+                    aria-hidden="true"
+                >
+                    📋
                 </div>
 
                 <p class="admin-stat-number">
-                    <?= $totalTeams; ?>
+                    <?= number_format($totalEventFormats); ?>
+                </p>
+
+                <p class="admin-stat-title">
+                    Active event formats
+                </p>
+
+            </article>
+
+
+            <!-- Teams -->
+
+            <article class="admin-stat-card">
+
+                <div
+                    class="admin-stat-icon"
+                    aria-hidden="true"
+                >
+                    👥
+                </div>
+
+                <p class="admin-stat-number">
+                    <?= number_format($totalTeams); ?>
                 </p>
 
                 <p class="admin-stat-title">
@@ -1048,461 +1178,529 @@ if ($hasAdminAction) {
 
             </article>
 
-            <article class="admin-stat-card">
+        </div>
 
-                <div class="admin-stat-top">
+    </section>
 
-                    <div class="admin-stat-icon">
-                        🏆
+
+    <!-- =========================================================
+         PENDING STUDENTS
+    ========================================================== -->
+
+    <?php if ($pendingStudents > 0): ?>
+
+        <section
+            class="admin-pending-notice"
+            aria-labelledby="admin-pending-title"
+        >
+
+            <div
+                class="admin-pending-notice-icon"
+                aria-hidden="true"
+            >
+                ⏳
+            </div>
+
+            <div class="admin-pending-notice-content">
+
+                <h2 id="admin-pending-title">
+                    Student approvals needed
+                </h2>
+
+                <p>
+
+                    <?= number_format($pendingStudents); ?>
+
+                    student account
+                    <?= $pendingStudents === 1 ? 'is' : 'are'; ?>
+
+                    waiting for review.
+
+                </p>
+
+            </div>
+
+            <a
+                class="admin-button"
+                href="admin-pending-students.php"
+            >
+                Review students
+                <span aria-hidden="true">→</span>
+            </a>
+
+        </section>
+
+    <?php endif; ?>
+
+
+    <!-- =========================================================
+         ADMIN RESPONSIBILITIES
+    ========================================================== -->
+
+    <section aria-labelledby="admin-responsibilities-title">
+
+        <div class="admin-section-heading">
+
+            <div>
+
+                <h2 id="admin-responsibilities-title">
+                    What you manage
+                </h2>
+
+                <p>
+                    These are the main responsibilities of the Admin.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="admin-responsibilities">
+
+            <!-- Students -->
+
+            <article class="admin-responsibility">
+
+                <div class="admin-responsibility-top">
+
+                    <div
+                        class="admin-responsibility-icon"
+                        aria-hidden="true"
+                    >
+                        👨‍🎓
                     </div>
+
+                    <h3>
+                        Student Accounts
+                    </h3>
 
                 </div>
 
-                <p class="admin-stat-number">
-                    <?= $totalTournaments; ?>
+                <p>
+                    Review new student accounts and control
+                    access to the SportSync system.
                 </p>
 
-                <p class="admin-stat-title">
-                    Tournaments
-                </p>
+                <a
+                    class="admin-responsibility-link"
+                    href="admin-pending-students.php"
+                >
+                    Manage students →
+                </a>
 
             </article>
 
-        </section>
 
-        <!-- =====================================================
-             MAIN WORK AREA
-        ====================================================== -->
+            <!-- Sports -->
 
-        <section class="admin-main-grid">
+            <article class="admin-responsibility">
 
-            <!-- STUDENT APPROVALS -->
+                <div class="admin-responsibility-top">
 
-            <div class="admin-panel">
-
-                <div class="admin-panel-header">
-
-                    <div>
-
-                        <h2 class="admin-panel-title">
-                            Student Approvals
-                        </h2>
-
-                        <p class="admin-panel-subtitle">
-                            Student registrations that need your decision
-                        </p>
-
+                    <div
+                        class="admin-responsibility-icon"
+                        aria-hidden="true"
+                    >
+                        🏅
                     </div>
 
-                    <a
-                        href="admin-pending-students.php"
-                        class="admin-panel-link"
-                    >
-                        View All →
-                    </a>
+                    <h3>
+                        Sports & Formats
+                    </h3>
 
                 </div>
 
-                <?php if (!empty($recentPendingStudents)): ?>
-
-                    <div class="admin-table-wrap">
-
-                        <table class="admin-table">
-
-                            <thead>
-
-                                <tr>
-
-                                    <th>
-                                        Student
-                                    </th>
-
-                                    <th>
-                                        Registered
-                                    </th>
-
-                                    <th>
-                                        Status
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-                            <tbody>
-
-                            <?php foreach ($recentPendingStudents as $student): ?>
-
-                                <tr>
-
-                                    <td>
-
-                                        <div class="admin-student-name">
-                                            <?= e($student['full_name']); ?>
-                                        </div>
-
-                                        <div class="admin-student-email">
-                                            <?= e($student['email']); ?>
-                                        </div>
-
-                                    </td>
-
-                                    <td>
-                                        <?= e($student['created_at']); ?>
-                                    </td>
-
-                                    <td>
-
-                                        <span class="admin-status status-warning">
-                                            PENDING
-                                        </span>
-
-                                    </td>
-
-                                </tr>
-
-                            <?php endforeach; ?>
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                <?php else: ?>
-
-                    <div class="admin-empty">
-                        🎉 No students are waiting for approval.
-                    </div>
-
-                <?php endif; ?>
-
-            </div>
-
-            <!-- COMMON TASKS -->
-
-            <div class="admin-panel">
-
-                <div class="admin-panel-header">
-
-                    <div>
-
-                        <h2 class="admin-panel-title">
-                            Common Tasks
-                        </h2>
-
-                        <p class="admin-panel-subtitle">
-                            Actions you may need to perform regularly
-                        </p>
-
-                    </div>
-
-                </div>
-
-                <div class="admin-actions">
-
-                    <a
-                        href="admin-students.php"
-                        class="admin-action"
-                    >
-
-                        <span class="admin-action-icon">
-                            👨‍🎓
-                        </span>
-
-                        <span class="admin-action-content">
-
-                            <span class="admin-action-title">
-                                Manage Students
-                            </span>
-
-                            <span class="admin-action-description">
-                                View and manage registered students
-                            </span>
-
-                        </span>
-
-                        <span class="admin-action-arrow">
-                            →
-                        </span>
-
-                    </a>
-
-                    <a
-                        href="admin-teams.php"
-                        class="admin-action"
-                    >
-
-                        <span class="admin-action-icon">
-                            👥
-                        </span>
-
-                        <span class="admin-action-content">
-
-                            <span class="admin-action-title">
-                                Manage Teams
-                            </span>
-
-                            <span class="admin-action-description">
-                                View teams and manage team setup
-                            </span>
-
-                        </span>
-
-                        <span class="admin-action-arrow">
-                            →
-                        </span>
-
-                    </a>
-
-                    <a
-                        href="admin-tournaments.php"
-                        class="admin-action"
-                    >
-
-                        <span class="admin-action-icon">
-                            🏆
-                        </span>
-
-                        <span class="admin-action-content">
-
-                            <span class="admin-action-title">
-                                Manage Tournaments
-                            </span>
-
-                            <span class="admin-action-description">
-                                Create and manage competitions
-                            </span>
-
-                        </span>
-
-                        <span class="admin-action-arrow">
-                            →
-                        </span>
-
-                    </a>
-
-                    <a
-                        href="create-team.php"
-                        class="admin-action"
-                    >
-
-                        <span class="admin-action-icon">
-                            ➕
-                        </span>
-
-                        <span class="admin-action-content">
-
-                            <span class="admin-action-title">
-                                Create Team
-                            </span>
-
-                            <span class="admin-action-description">
-                                Add a new sports team
-                            </span>
-
-                        </span>
-
-                        <span class="admin-action-arrow">
-                            →
-                        </span>
-
-                    </a>
-
-                </div>
-
-            </div>
-
-        </section>
-
-        <!-- =====================================================
-             RECENT TOURNAMENTS
-        ====================================================== -->
-
-        <section class="admin-panel">
-
-            <div class="admin-panel-header">
-
-                <div>
-
-                    <h2 class="admin-panel-title">
-                        Recent Tournaments
-                    </h2>
-
-                    <p class="admin-panel-subtitle">
-                        Latest competitions created in SportSync
-                    </p>
-
-                </div>
+                <p>
+                    Manage sports and define their event formats,
+                    such as Solo and Team events.
+                </p>
 
                 <a
-                    href="admin-tournaments.php"
-                    class="admin-panel-link"
+                    class="admin-responsibility-link"
+                    href="admin-sports.php"
                 >
-                    Manage All →
+                    Manage sports →
+                </a>
+
+            </article>
+
+
+            <!-- Teams -->
+
+            <article class="admin-responsibility">
+
+                <div class="admin-responsibility-top">
+
+                    <div
+                        class="admin-responsibility-icon"
+                        aria-hidden="true"
+                    >
+                        👥
+                    </div>
+
+                    <h3>
+                        Teams
+                    </h3>
+
+                </div>
+
+                <p>
+                    View and manage the teams available
+                    in the college sports system.
+                </p>
+
+                <a
+                    class="admin-responsibility-link"
+                    href="admin-teams.php"
+                >
+                    Manage teams →
+                </a>
+
+            </article>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================================
+         EVENT FORMAT OVERVIEW
+    ========================================================== -->
+
+    <section
+        class="admin-format-panel"
+        aria-labelledby="admin-format-title"
+    >
+
+        <div class="admin-panel-header">
+
+            <div>
+
+                <h2 id="admin-format-title">
+                    Sport event formats
+                </h2>
+
+                <p>
+                    Active Solo and Team formats configured for each sport.
+                </p>
+
+            </div>
+
+            <a
+                class="admin-panel-link"
+                href="admin-sports.php"
+            >
+                Manage formats →
+            </a>
+
+        </div>
+
+
+        <?php if ($eventFormatSummary): ?>
+
+            <div class="admin-format-list">
+
+                <?php foreach ($eventFormatSummary as $format): ?>
+
+                    <div class="admin-format-row">
+
+                        <div>
+
+                            <div class="admin-format-sport">
+
+                                <?= adminDashboardEscape(
+                                    $format['sport_name'] ?? 'Sport'
+                                ); ?>
+
+                            </div>
+
+                            <div class="admin-format-type">
+
+                                <?php if (($format['event_type'] ?? '') === 'SOLO'): ?>
+
+                                    👤 Solo event
+
+                                <?php else: ?>
+
+                                    👥 Team event
+
+                                <?php endif; ?>
+
+                            </div>
+
+                        </div>
+
+                        <span class="admin-format-count">
+
+                            <?= number_format(
+                                (int) ($format['format_count'] ?? 0)
+                            ); ?>
+
+                        </span>
+
+                    </div>
+
+                <?php endforeach; ?>
+
+            </div>
+
+        <?php else: ?>
+
+            <div class="admin-empty">
+
+                <strong>
+                    No event formats found
+                </strong>
+
+                Add event formats such as:
+
+                <br>
+
+                <b>100m Running → Solo</b>
+
+                <br>
+
+                <b>4x100m Relay → Team</b>
+
+                <br><br>
+
+                <a
+                    class="admin-button"
+                    href="admin-sports.php"
+                >
+                    Add event format →
                 </a>
 
             </div>
 
-            <?php if (!empty($recentTournaments)): ?>
+        <?php endif; ?>
 
-                <div class="admin-tournament-list">
+    </section>
 
-                    <?php foreach ($recentTournaments as $tournament): ?>
 
-                        <div class="admin-tournament">
+    <!-- =========================================================
+         RECENT COMPETITIONS
+    ========================================================== -->
 
-                            <div class="admin-tournament-icon">
-                                🏆
-                            </div>
+    <section
+        class="admin-format-panel"
+        aria-labelledby="admin-competitions-title"
+    >
 
-                            <div class="admin-tournament-info">
+        <div class="admin-panel-header">
 
-                                <div class="admin-tournament-name">
-                                    <?= e($tournament['tournament_name']); ?>
-                                </div>
+            <div>
 
-                                <div class="admin-tournament-meta">
+                <h2 id="admin-competitions-title">
+                    Recent competitions
+                </h2>
 
-                                    <?= e($tournament['sport_name'] ?? 'Sport'); ?>
+                <p>
+                    Latest competitions created in SportSync.
+                </p>
 
-                                    •
+            </div>
 
-                                    <?= e($tournament['start_date']); ?>
+            <a
+                class="admin-panel-link"
+                href="admin-tournaments.php"
+            >
+                View all →
+            </a>
 
-                                    to
+        </div>
 
-                                    <?= e($tournament['end_date']); ?>
 
-                                </div>
+        <?php if ($recentCompetitions): ?>
 
-                            </div>
+            <div class="admin-competition-list">
 
-                            <span
-                                class="admin-status <?= dashboardStatusClass(
-                                    $tournament['tournament_status'] ?? ''
-                                ); ?>"
-                            >
-                                <?= e(
-                                    $tournament['tournament_status'] ?? 'N/A'
+                <?php foreach ($recentCompetitions as $competition): ?>
+
+                    <article class="admin-competition">
+
+                        <div
+                            class="admin-competition-icon"
+                            aria-hidden="true"
+                        >
+                            🏆
+                        </div>
+
+                        <div class="admin-competition-info">
+
+                            <div class="admin-competition-name">
+
+                                <?= adminDashboardEscape(
+                                    $competition['event_title'] ?? 'Competition'
                                 ); ?>
-                            </span>
+
+                            </div>
+
+                            <div class="admin-competition-meta">
+
+                                <?= adminDashboardEscape(
+                                    $competition['sport_name'] ?? 'Sport not specified'
+                                ); ?>
+
+                                &nbsp;·&nbsp;
+
+                                <?= adminDashboardEscape(
+                                    adminDashboardDate(
+                                        $competition['event_start'] ?? null
+                                    )
+                                ); ?>
+
+                            </div>
 
                         </div>
 
-                    <?php endforeach; ?>
+                        <span
+                            class="admin-status
+                            <?= adminDashboardEscape(
+                                adminDashboardStatusClass(
+                                    $competition['event_status'] ?? null
+                                )
+                            ); ?>"
+                        >
 
-                </div>
+                            <?= adminDashboardEscape(
+                                str_replace(
+                                    '_',
+                                    ' ',
+                                    $competition['event_status'] ?? 'Unknown'
+                                )
+                            ); ?>
 
-            <?php else: ?>
+                        </span>
 
-                <div class="admin-empty">
-                    No tournaments have been created yet.
-                </div>
+                    </article>
 
-            <?php endif; ?>
+                <?php endforeach; ?>
 
-        </section>
+            </div>
 
-        <!-- =====================================================
-             SYSTEM SNAPSHOT
-        ====================================================== -->
+        <?php else: ?>
 
-        <section>
+            <div class="admin-empty">
 
-            <div class="admin-section-heading">
+                <strong>
+                    No competitions yet
+                </strong>
+
+                Competitions created by the Sports Coordinator
+                will appear here.
+
+            </div>
+
+        <?php endif; ?>
+
+    </section>
+
+
+    <!-- =========================================================
+         SIMPLE ROLE GUIDE
+    ========================================================== -->
+
+    <section
+        class="admin-format-panel"
+        aria-labelledby="admin-role-guide-title"
+    >
+
+        <div class="admin-panel-header">
+
+            <div>
+
+                <h2 id="admin-role-guide-title">
+                    SportSync role guide
+                </h2>
+
+                <p>
+                    Keep responsibilities simple and separate.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="admin-format-list">
+
+            <div class="admin-format-row">
 
                 <div>
 
-                    <h2>
-                        System Snapshot
-                    </h2>
+                    <div class="admin-format-sport">
+                        🛡️ Admin
+                    </div>
 
-                    <p>
-                        Additional information useful for administration.
-                    </p>
+                    <div class="admin-format-type">
+                        Manages accounts, sports, event formats and system records.
+                    </div>
 
                 </div>
 
             </div>
 
-        </section>
 
-        <section class="admin-overview-grid">
+            <div class="admin-format-row">
 
-            <!-- Coaches -->
+                <div>
 
-            <article class="admin-overview-card">
+                    <div class="admin-format-sport">
+                        📅 Sports Coordinator
+                    </div>
 
-                <div class="admin-overview-icon">
-                    👨‍🏫
+                    <div class="admin-format-type">
+                        Creates competitions, manages registrations and schedules events.
+                    </div>
+
                 </div>
 
-                <h3>
-                    Coaches
-                </h3>
+            </div>
 
-                <p>
-                    Coaches currently registered in SportSync.
-                </p>
 
-                <div class="admin-overview-value">
-                    <?= $totalCoaches; ?>
+            <div class="admin-format-row">
+
+                <div>
+
+                    <div class="admin-format-sport">
+                        👨‍🏫 Coach
+                    </div>
+
+                    <div class="admin-format-type">
+                        Manages assigned teams, players and participation.
+                    </div>
+
                 </div>
 
-            </article>
+            </div>
 
-            <!-- Matches -->
 
-            <article class="admin-overview-card">
+            <div class="admin-format-row">
 
-                <div class="admin-overview-icon">
-                    ⚽
+                <div>
+
+                    <div class="admin-format-sport">
+                        🏃 Player
+                    </div>
+
+                    <div class="admin-format-type">
+                        Selects sports, chooses available events and registers.
+                    </div>
+
                 </div>
 
-                <h3>
-                    Matches
-                </h3>
+            </div>
 
-                <p>
-                    Matches currently recorded in the system.
-                </p>
+        </div>
 
-                <div class="admin-overview-value">
-                    <?= $totalMatches; ?>
-                </div>
+    </section>
 
-            </article>
-
-            <!-- Sports -->
-
-            <article class="admin-overview-card">
-
-                <div class="admin-overview-icon">
-                    🏃
-                </div>
-
-                <h3>
-                    Sports
-                </h3>
-
-                <p>
-                    Sports currently available in SportSync.
-                </p>
-
-                <div class="admin-overview-value">
-                    <?= $totalSports; ?>
-                </div>
-
-            </article>
-
-        </section>
-
-    </main>
-
-</div>
+</main>
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 
 </body>
+
 </html>
