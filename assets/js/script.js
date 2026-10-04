@@ -1,138 +1,444 @@
 /* =========================================================
-   SPORTS MANAGEMENT SYSTEM
-   MAIN JAVASCRIPT
+   SPORTSYNC - MAIN JAVASCRIPT
    ========================================================= */
 
-document.addEventListener('DOMContentLoaded', function () {
+(function () {
 
-    const menuButton = document.getElementById('menuButton');
-    const sidebar = document.getElementById('sidebar');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    'use strict';
 
 
     /* =====================================================
-       OPEN / CLOSE MOBILE SIDEBAR
+       SIDEBAR
        ===================================================== */
 
-    function openSidebar() {
+    function initSidebar() {
 
-        if (!sidebar || !sidebarOverlay) {
+        const menuButton = document.getElementById('menuButton');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+
+        /*
+         * Stop if sidebar elements do not exist.
+         */
+        if (!menuButton || !sidebar || !sidebarOverlay) {
             return;
         }
 
-        sidebar.classList.add('open');
-        sidebarOverlay.classList.add('open');
 
-        document.body.style.overflow = 'hidden';
-    }
-
-
-    function closeSidebar() {
-
-        if (!sidebar || !sidebarOverlay) {
+        /*
+         * Prevent this function from being initialized twice.
+         */
+        if (menuButton.dataset.sidebarInitialized === 'true') {
             return;
         }
 
-        sidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('open');
-
-        document.body.style.overflow = '';
-    }
+        menuButton.dataset.sidebarInitialized = 'true';
 
 
-    function toggleSidebar() {
+        /*
+         * Store the original page scroll position.
+         */
+        let savedScrollY = 0;
 
-        if (!sidebar) {
-            return;
+
+        /* =================================================
+           OPEN SIDEBAR
+           ================================================= */
+
+        function openSidebar() {
+
+            /*
+             * Save current page position.
+             */
+            savedScrollY =
+                window.scrollY ||
+                window.pageYOffset ||
+                0;
+
+
+            /*
+             * Lock HTML and BODY.
+             */
+            document.documentElement.classList.add(
+                'sidebar-menu-open'
+            );
+
+            document.body.classList.add(
+                'sidebar-menu-open'
+            );
+
+
+            /*
+             * Completely lock background scrolling.
+             *
+             * The page stays at the same position while
+             * the sidebar is open.
+             */
+            document.body.style.position = 'fixed';
+
+            document.body.style.top =
+                `-${savedScrollY}px`;
+
+            document.body.style.left = '0';
+
+            document.body.style.right = '0';
+
+            document.body.style.width = '100%';
+
+            document.body.style.overflow = 'hidden';
+
+
+            /*
+             * Open sidebar.
+             */
+            sidebar.classList.add('open');
+
+
+            /*
+             * Show overlay.
+             */
+            sidebarOverlay.classList.add('is-visible');
+
+            sidebarOverlay.setAttribute(
+                'aria-hidden',
+                'false'
+            );
+
+
+            /*
+             * Update menu button.
+             */
+            menuButton.setAttribute(
+                'aria-expanded',
+                'true'
+            );
+
+            menuButton.setAttribute(
+                'aria-label',
+                'Close navigation menu'
+            );
+
+
+            /*
+             * Prevent background touch scrolling.
+             */
+            document.addEventListener(
+                'touchmove',
+                preventBackgroundTouch,
+                {
+                    passive: false
+                }
+            );
         }
 
-        if (sidebar.classList.contains('open')) {
-            closeSidebar();
-        } else {
-            openSidebar();
+
+        /* =================================================
+           CLOSE SIDEBAR
+           ================================================= */
+
+        function closeSidebar() {
+
+            /*
+             * Close sidebar.
+             */
+            sidebar.classList.remove('open');
+
+
+            /*
+             * Hide overlay.
+             */
+            sidebarOverlay.classList.remove(
+                'is-visible'
+            );
+
+            sidebarOverlay.setAttribute(
+                'aria-hidden',
+                'true'
+            );
+
+
+            /*
+             * Remove page lock classes.
+             */
+            document.documentElement.classList.remove(
+                'sidebar-menu-open'
+            );
+
+            document.body.classList.remove(
+                'sidebar-menu-open'
+            );
+
+
+            /*
+             * Remove fixed body positioning.
+             */
+            document.body.style.position = '';
+
+            document.body.style.top = '';
+
+            document.body.style.left = '';
+
+            document.body.style.right = '';
+
+            document.body.style.width = '';
+
+            document.body.style.overflow = '';
+
+
+            /*
+             * Remove touch-scroll blocker.
+             */
+            document.removeEventListener(
+                'touchmove',
+                preventBackgroundTouch
+            );
+
+
+            /*
+             * Restore original page position.
+             */
+            window.scrollTo(
+                0,
+                savedScrollY
+            );
+
+
+            /*
+             * Update menu button.
+             */
+            menuButton.setAttribute(
+                'aria-expanded',
+                'false'
+            );
+
+            menuButton.setAttribute(
+                'aria-label',
+                'Open navigation menu'
+            );
         }
-    }
 
 
-    /* =====================================================
-       MENU BUTTON
-       ===================================================== */
+        /* =================================================
+           BACKGROUND TOUCH BLOCKER
+           ================================================= */
 
-    if (menuButton) {
+        function preventBackgroundTouch(event) {
 
-        menuButton.addEventListener('click', function () {
+            /*
+             * Allow scrolling inside the sidebar.
+             */
+            if (sidebar.contains(event.target)) {
+                return;
+            }
 
-            toggleSidebar();
-
-        });
-
-    }
-
-
-    /* =====================================================
-       CLICK OUTSIDE SIDEBAR
-       ===================================================== */
-
-    if (sidebarOverlay) {
-
-        sidebarOverlay.addEventListener('click', function () {
-
-            closeSidebar();
-
-        });
-
-    }
+            /*
+             * Block touch scrolling outside sidebar.
+             */
+            event.preventDefault();
+        }
 
 
-    /* =====================================================
-       CLOSE AFTER CLICKING A SIDEBAR LINK
-       ===================================================== */
+        /* =================================================
+           TOGGLE SIDEBAR
+           ================================================= */
 
-    if (sidebar) {
+        function toggleSidebar(event) {
+
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+
+
+            /*
+             * If sidebar is already open,
+             * close it.
+             */
+            if (sidebar.classList.contains('open')) {
+
+                closeSidebar();
+
+            }
+
+            /*
+             * Otherwise open it.
+             */
+            else {
+
+                openSidebar();
+
+            }
+        }
+
+
+        /* =================================================
+           MENU BUTTON
+           ================================================= */
+
+        menuButton.addEventListener(
+            'click',
+            function (event) {
+
+                toggleSidebar(event);
+
+            },
+            false
+        );
+
+
+        /* =================================================
+           OVERLAY
+           ================================================= */
+
+        sidebarOverlay.addEventListener(
+            'click',
+            function (event) {
+
+                event.preventDefault();
+
+                event.stopPropagation();
+
+                closeSidebar();
+
+            },
+            false
+        );
+
+
+        /* =================================================
+           SIDEBAR LINKS
+           ================================================= */
 
         const sidebarLinks =
             sidebar.querySelectorAll('a');
 
+
         sidebarLinks.forEach(function (link) {
 
-            link.addEventListener('click', function () {
+            link.addEventListener(
+                'click',
+                function () {
 
-                closeSidebar();
+                    /*
+                     * Close sidebar only on mobile/tablet.
+                     */
+                    if (
+                        window.matchMedia(
+                            '(max-width: 1024px)'
+                        ).matches
+                    ) {
 
-            });
+                        closeSidebar();
+
+                    }
+
+                },
+                false
+            );
 
         });
+
+
+        /* =================================================
+           ESC KEY
+           ================================================= */
+
+        document.addEventListener(
+            'keydown',
+            function (event) {
+
+                if (
+                    event.key === 'Escape' &&
+                    sidebar.classList.contains('open')
+                ) {
+
+                    closeSidebar();
+
+                }
+
+            },
+            false
+        );
+
+
+        /* =================================================
+           WINDOW RESIZE
+           ================================================= */
+
+        window.addEventListener(
+            'resize',
+            function () {
+
+                /*
+                 * If screen becomes desktop size,
+                 * close the mobile sidebar.
+                 */
+                if (
+                    window.innerWidth > 1024 &&
+                    sidebar.classList.contains('open')
+                ) {
+
+                    closeSidebar();
+
+                }
+
+            },
+            false
+        );
+
+
+        /* =================================================
+           INITIAL STATE
+           ================================================= */
+
+        /*
+         * Make sure the sidebar starts closed.
+         */
+        sidebar.classList.remove('open');
+
+        sidebarOverlay.classList.remove('is-visible');
+
+        sidebarOverlay.setAttribute(
+            'aria-hidden',
+            'true'
+        );
+
+        menuButton.setAttribute(
+            'aria-expanded',
+            'false'
+        );
+
+        menuButton.setAttribute(
+            'aria-label',
+            'Open navigation menu'
+        );
 
     }
 
 
     /* =====================================================
-       ESC KEY
+       INITIALIZE
        ===================================================== */
 
-    document.addEventListener('keydown', function (event) {
+    if (
+        document.readyState === 'loading'
+    ) {
 
-        if (event.key === 'Escape') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            initSidebar,
+            {
+                once: true
+            }
+        );
 
-            closeSidebar();
+    }
 
-        }
+    else {
 
-    });
+        initSidebar();
 
+    }
 
-    /* =====================================================
-       CLOSE SIDEBAR WHEN SCREEN BECOMES DESKTOP
-       ===================================================== */
-
-    window.addEventListener('resize', function () {
-
-        if (window.innerWidth > 900) {
-
-            closeSidebar();
-
-        }
-
-    });
-
-});
+})();

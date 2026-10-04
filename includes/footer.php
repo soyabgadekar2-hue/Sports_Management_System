@@ -156,7 +156,7 @@ if (function_exists('currentUser')) {
      JAVASCRIPT
      ========================================================= -->
 
-<script src="../assets/js/script.js?v=2"></script>
+<script src="../assets/js/script.js?v=3"></script>
 
 </body>
 

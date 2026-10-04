@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
@@ -35,6 +36,26 @@ $sports = $sportsStmt->fetchAll(PDO::FETCH_ASSOC);
 
 /*
 |--------------------------------------------------------------------------
+| Get Active Tournament Formats
+|--------------------------------------------------------------------------
+*/
+
+$formatsStmt = $pdo->query("
+    SELECT
+        event_format_id,
+        format_name,
+        format_code,
+        description
+    FROM event_formats
+    WHERE format_status = 'ACTIVE'
+    ORDER BY format_name
+");
+
+$formats = $formatsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+/*
+|--------------------------------------------------------------------------
 | Get Available Venues
 |--------------------------------------------------------------------------
 |
@@ -58,11 +79,13 @@ $venues = $venuesStmt->fetchAll(PDO::FETCH_ASSOC);
 $error = $_GET['error'] ?? '';
 
 $pageTitle = 'Create Tournament';
+
 ?>
 
 <?php require_once __DIR__ . '/../includes/header.php'; ?>
 
 <style>
+
     /* =========================================================
        CREATE TOURNAMENT PAGE
        ========================================================= */
@@ -332,6 +355,56 @@ $pageTitle = 'Create Tournament';
         box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
+    /* Venue controls */
+
+    .tournament-venue-controls {
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .tournament-venue-select-wrap {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .tournament-add-venue-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        min-width: 120px;
+        height: 42px;
+        padding: 0 14px;
+        border: 1px solid #2563eb;
+        border-radius: 9px;
+        background: #ffffff;
+        color: #2563eb;
+        font-family: inherit;
+        font-size: 12px;
+        font-weight: 750;
+        text-decoration: none;
+        cursor: pointer;
+        transition:
+            background 0.18s ease,
+            border-color 0.18s ease,
+            color 0.18s ease,
+            transform 0.18s ease;
+    }
+
+    .tournament-add-venue-button:hover {
+        background: #eff6ff;
+        border-color: #1d4ed8;
+        color: #1d4ed8;
+        transform: translateY(-1px);
+    }
+
+    .tournament-add-venue-icon {
+        margin-right: 6px;
+        font-size: 16px;
+        line-height: 1;
+    }
+
     /* Points cards */
 
     .tournament-points-grid {
@@ -534,7 +607,8 @@ $pageTitle = 'Create Tournament';
     }
 
     .tournament-button-submit:focus-visible,
-    .tournament-button-cancel:focus-visible {
+    .tournament-button-cancel:focus-visible,
+    .tournament-add-venue-button:focus-visible {
         outline: 3px solid rgba(37, 99, 235, 0.16);
         outline-offset: 2px;
     }
@@ -588,6 +662,14 @@ $pageTitle = 'Create Tournament';
             flex: 1;
             min-width: 0;
         }
+
+        .tournament-venue-controls {
+            flex-direction: column;
+        }
+
+        .tournament-add-venue-button {
+            width: 100%;
+        }
     }
 
     @media (max-width: 480px) {
@@ -608,6 +690,7 @@ $pageTitle = 'Create Tournament';
             width: 100%;
         }
     }
+
 </style>
 
 
@@ -797,7 +880,7 @@ $pageTitle = 'Create Tournament';
                     </div>
 
 
-                    <!-- Format -->
+                    <!-- Tournament Format -->
 
                     <div class="tournament-form-group">
 
@@ -816,14 +899,34 @@ $pageTitle = 'Create Tournament';
                             required
                         >
 
-                            <option value="LEAGUE">
-                                League
+                            <option value="">
+                                Select Format
                             </option>
+
+                            <?php foreach ($formats as $format): ?>
+
+                                <option
+                                    value="<?= htmlspecialchars(
+                                        $format['format_code'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ) ?>"
+                                >
+
+                                    <?= htmlspecialchars(
+                                        $format['format_name'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ) ?>
+
+                                </option>
+
+                            <?php endforeach; ?>
 
                         </select>
 
                         <p class="tournament-help-text">
-                            League format is currently supported in V1.
+                            Choose how this tournament will be conducted.
                         </p>
 
                     </div>
@@ -946,34 +1049,59 @@ $pageTitle = 'Create Tournament';
                             Venue
                         </label>
 
-                        <select
-                            name="venue_id"
-                            id="venue_id"
-                            class="tournament-select"
-                        >
+                        <div class="tournament-venue-controls">
 
-                            <option value="">
-                                Not assigned
-                            </option>
+                            <div class="tournament-venue-select-wrap">
 
-                            <?php foreach ($venues as $venue): ?>
-
-                                <option
-                                    value="<?= (int) $venue['venue_id'] ?>"
+                                <select
+                                    name="venue_id"
+                                    id="venue_id"
+                                    class="tournament-select"
                                 >
-                                    <?= htmlspecialchars(
-                                        $venue['venue_name'],
-                                        ENT_QUOTES,
-                                        'UTF-8'
-                                    ) ?>
-                                </option>
 
-                            <?php endforeach; ?>
+                                    <option value="">
+                                        Not assigned
+                                    </option>
 
-                        </select>
+                                    <?php foreach ($venues as $venue): ?>
+
+                                        <option
+                                            value="<?= (int) $venue['venue_id'] ?>"
+                                        >
+
+                                            <?= htmlspecialchars(
+                                                $venue['venue_name'],
+                                                ENT_QUOTES,
+                                                'UTF-8'
+                                            ) ?>
+
+                                        </option>
+
+                                    <?php endforeach; ?>
+
+                                </select>
+
+                            </div>
+
+
+                            <a
+                                href="admin-venues.php"
+                                class="tournament-add-venue-button"
+                                title="Add or manage venues"
+                            >
+
+                                <span class="tournament-add-venue-icon">
+                                    +
+                                </span>
+
+                                Add Venue
+
+                            </a>
+
+                        </div>
 
                         <p class="tournament-help-text">
-                            You can leave the venue unassigned and configure it later.
+                            Select an available venue or use Add Venue to create/manage venues.
                         </p>
 
                     </div>
@@ -1125,8 +1253,10 @@ $pageTitle = 'Create Tournament';
 
                     <div>
                         Default SportSync league scoring is
-                        <strong>3 points for a win, 1 point for a draw,
-                        and 0 points for a loss.</strong>
+                        <strong>
+                            3 points for a win, 1 point for a draw,
+                            and 0 points for a loss.
+                        </strong>
                         You can change these values for this tournament.
                     </div>
 
@@ -1244,7 +1374,7 @@ $pageTitle = 'Create Tournament';
                         >
 
                             <option value="DRAFT">
-                                Draft
+                                Upcoming (Draft)
                             </option>
 
                             <option value="REGISTRATION_OPEN">
@@ -1286,7 +1416,11 @@ $pageTitle = 'Create Tournament';
         <div class="tournament-action-bar">
 
             <div class="tournament-action-note">
-                Fields marked with <strong>*</strong> are required.
+
+                Fields marked with
+                <strong>*</strong>
+                are required.
+
             </div>
 
             <div class="tournament-action-buttons">
@@ -1315,6 +1449,7 @@ $pageTitle = 'Create Tournament';
 
 
 <script>
+
     document.addEventListener('DOMContentLoaded', function () {
 
         const startDate = document.getElementById('start_date');
@@ -1337,7 +1472,9 @@ $pageTitle = 'Create Tournament';
                     endDate.value &&
                     endDate.value < startDate.value
                 ) {
+
                     endDate.value = startDate.value;
+
                 }
 
             });
@@ -1372,6 +1509,7 @@ $pageTitle = 'Create Tournament';
                     endDate.focus();
 
                     return;
+
                 }
 
             });
@@ -1379,6 +1517,8 @@ $pageTitle = 'Create Tournament';
         }
 
     });
+
 </script>
+
 
 <?php require_once __DIR__ . '/../includes/footer.php'; ?>

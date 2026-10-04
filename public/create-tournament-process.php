@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 require_once __DIR__ . '/../config/database.php';
@@ -6,7 +7,10 @@ require_once __DIR__ . '/../includes/authorization.php';
 require_once __DIR__ . '/../includes/csrf.php';
 require_once __DIR__ . '/../includes/audit.php';
 
-requireAnyRole(['ADMIN', 'SPORTS_COORDINATOR']);
+requireAnyRole([
+    'ADMIN',
+    'SPORTS_COORDINATOR'
+]);
 
 
 /*
@@ -155,19 +159,46 @@ if (
 
 /*
 |--------------------------------------------------------------------------
-| Validate Format
+| Validate Tournament Format
 |--------------------------------------------------------------------------
+|
+| Format is checked against the event_formats table.
+| Only ACTIVE formats can be used.
+|
 */
 
-if (!in_array(
-    $format,
-    ['LEAGUE'],
-    true
-)) {
+if ($format === '') {
 
     header(
         'Location: create-tournament.php?error=' .
-        urlencode('Invalid tournament format.')
+        urlencode('Please select a tournament format.')
+    );
+
+    exit;
+}
+
+
+$formatStmt = $pdo->prepare("
+    SELECT
+        event_format_id,
+        format_code
+    FROM event_formats
+    WHERE format_code = :format_code
+      AND format_status = 'ACTIVE'
+    LIMIT 1
+");
+
+$formatStmt->execute([
+    ':format_code' => $format
+]);
+
+$selectedFormat = $formatStmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$selectedFormat) {
+
+    header(
+        'Location: create-tournament.php?error=' .
+        urlencode('Invalid or inactive tournament format.')
     );
 
     exit;
